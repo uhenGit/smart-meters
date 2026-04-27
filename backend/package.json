@@ -1,0 +1,28 @@
+{
+  "name": "node-express-meter",
+  "version": "0.0.1",
+  "description": "server app that allows input, handle, calculate, and save meter readings into the pg-database",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "postgres",
+    "node",
+    "docker",
+    "docker-compose",
+    "sql"
+  ],
+  "author": "enahornyi",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.13.3",
+    "pg-promise": "^11.10.2"
+  }
+}

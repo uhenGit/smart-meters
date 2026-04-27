@@ -1,0 +1,291 @@
+const db = require('./db');
+
+/**
+ * 
+ * @param {String} currentDataPeriod - Postgres date format 'yyyy-mm-dd'
+ * @param {Number} shift - shift for the search period start (use 1 if you need a current month as a start and 0 if you need a prev month)
+ * @returns {Object} - date range
+ */
+function getPrevDataPeriodFrom(currentDataPeriod, shift = 0) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const prevMonthNumber = now.getMonth() + shift;
+  // const dayOfMonth = now.getDate();
+  // const currentISODate = now.toISOString().split('T')[0];
+  const prevMonthString = prevMonthNumber < 10
+    ? `0${prevMonthNumber}`
+    : `${prevMonthNumber}`;
+
+  if (prevMonthString === '00') {
+    return {
+      start: `${year - 1}-12-01`,
+      end: currentDataPeriod,
+    }
+  }
+
+  return {
+    start: `${year}-${prevMonthString}-01`,
+    end: currentDataPeriod,
+  }
+
+  // return currentDataPeriod.replace(/-(..)-/, prevMonthString);
+}
+
+/**
+ * DB instance contains custom function truncate_to_month to avoid duplication data in the same month
+ * @param {Object} param0 - object with communal data and notes
+ * @param {String} userID
+ * @returns {String} - formatted date
+ */
+async function insertKommunInfo(
+  { gas, water, dayelec, nightelec, heat=0, notes='' },
+  userID,
+  ) {
+  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
+  const tableName = 'indications';
+	try {
+		const query = `
+      WITH taxes_ctx AS (SELECT id FROM taxes WHERE start_date = end_date)
+			INSERT INTO ${tableName} (gas, water, dayelec, nightelec, heat, notes, user_id, tax_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, (SELECT id FROM taxes_ctx))
+			RETURNING TO_CHAR(created_at, 'yyyy-mm-dd');
+		`;
+		const { to_char: result } = await db.one(query, [gas, water, dayelec, nightelec, heat, notes, userID]);
+    // return date formatted to { to_char: 'yyyy-mm-dd' }
+    return result;
+	} catch (err) {
+    const error = `SAVE DATA ERROR: ${err.message}`;
+		console.error(error);
+    throw new Error(error);
+	}
+}
+
+/**
+ * 
+ * @param {String} currentDataPeriod - date to string like 'yyyy-mm-dd'
+ * @param {String} apartment - apartment name to use specific table
+ * @param {Number} shift - shift for the search period start (1 is for using the current month, and 0 is for the prev month)
+ * @returns {Object} - DB query result or null
+ */
+async function getPrevMonthInfo(currentDataPeriod, apartment, shift = 0) {
+  // @todo investigate shift param
+  const { start, end } = getPrevDataPeriodFrom(currentDataPeriod, shift);
+  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
+  const tableName = 'indications';
+  
+	try {
+		const query = `
+			SELECT * FROM ${tableName}
+      INNER JOIN taxes ON ${tableName}.tax_id = taxes.id
+      WHERE created_at >= $1 AND created_at <= $2
+      ORDER BY created_at
+		`;
+
+    return db.manyOrNone(query, [start, end]);
+    
+	} catch (err) {
+    const error = `GET PREV INFO ERROR: ${err}`;
+		console.error(error);
+    throw new Error(error);
+	}
+}
+
+/**
+ * 
+ * @param {Object} data - parsed request body values
+ * @param {String} period - date to string like 'yyyy-mm-dd'
+ * @param {String} userID
+ * @returns {Object} - update result
+ */
+async function updateCurrentMonthKommuns(data, period, userID) {
+  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
+  const tableName = 'indications';
+  // @todo refactor update values to a separate function
+  const { start, end } = getPrevDataPeriodFrom(period, 1);
+  const actualUpdates = Object.keys(data)
+    .filter((fieldName) => data[fieldName]);
+  const actualValuesToUpdate = actualUpdates.map((field) => (data[field]));
+  const actualFieldsToUpdate = actualUpdates
+    .map((field, idx) => (`${field} = $${idx + 1}`));
+  const clauseString = `user_id = ${userID} AND created_at >= $${actualFieldsToUpdate.length + 1} AND created_at <= $${actualFieldsToUpdate.length + 2}`;
+  const queryString = actualFieldsToUpdate.join(', ');
+
+  try {
+    const query = `
+      UPDATE ${tableName}
+      SET ${queryString}
+      WHERE ${clauseString}
+      RETURNING *;
+    `;
+
+    return db.one(query, [...actualValuesToUpdate, start, end]);
+    
+  } catch (err) {
+    const error = `UPDATE INFO ERROR: ${err}`;
+    console.error(error);
+    throw new Error(error);
+  }
+
+}
+
+async function getLastTaxes() {
+  try {
+    const query = `SELECT * FROM taxes WHERE start_date = end_date`;
+    return db.one(query);
+  } catch (err) {
+    const error = `GET TAXES ERROR ${err}`;
+    console.error(error);
+    throw new Error(error);
+  }
+}
+
+/**
+ * DB instance contains custom function truncate_to_month to avoid duplication data in the same month
+ * @param {Object} param0 - object with communal data and notes
+ * @param {string} userID
+ * @returns {string} - formatted data
+ */
+async function getHistoricalDataFrom({ start, end }, userID) {
+  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
+  const tableName = 'indications';
+
+  try {
+    const query = `
+      SELECT * FROM ${tableName}
+      INNER JOIN taxes ON ${tableName}.tax_id = taxes.id
+      WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
+    `;
+    return db.manyOrNone(query, [userID, start, end]);
+  } catch (err) {
+    const error = `GET HISTORICAL DATA ERROR: ${err}`;
+    console.log(error);
+    throw new Error(error);
+  }
+}
+
+/**
+ * @param {String} userID
+ * @returns
+* */
+async function getLastCommunRecord(userID) {
+  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
+  const tableName = 'indications';
+  try {
+    const query = `SELECT * FROM ${tableName} WHERE user_id = $1 ORDER BY createdat DESC LIMIT 1`;
+    const res = await db.oneOrNone(query, [userID]);
+    console.log('LAST: ', res);
+
+    return res;
+  } catch (err) {
+    console.log('LAST ERR: ', err);
+  }
+}
+
+async function updateTaxClose(closeDate, id) {
+  try {
+    const query = `UPDATE taxes SET end_date = $1 WHERE id = $2 RETURNING *;`;
+    return db.one(query, [closeDate, id]);
+  } catch (err) {
+    const error = `UPDATE TAXES ERROR: ${err}`;
+    console.error(error);
+    throw new Error(error);
+  }
+}
+
+async function createTax(data, period) {
+  const { gas_tax, water_tax, dayelec_tax, nightelec_tax, trash_fixed, water_delivery_fixed, user_id } = data;
+  try {
+    const query = `
+      INSERT INTO taxes (start_date, end_date, gas_tax, water_tax, dayelec_tax, nightelec_tax, trash_fixed, water_delivery_fixed, user_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *;
+    `;
+    return db.one(query, [period, period, gas_tax, water_tax, dayelec_tax, nightelec_tax, trash_fixed, water_delivery_fixed, user_id]);
+  } catch (err) {
+    const error = `CREATE TAXES ERROR: ${err}`;
+    console.error(error);
+    throw new Error(error);
+  }
+}
+
+/* async function getHistoricalTaxesFrom({ start, end }) {
+  try {
+    const query = `
+      SELECT * FROM taxes WHERE start_date >= $1 AND end_date <= $2
+    `;
+    const result = await db.manyOrNone(query, [start, end]);
+    console.log('HIST TAXES: ', result);
+    return result;
+    
+  } catch (err) {
+    const error = `GET HISTORICAL TAXES ERROR: ${err}`;
+    console.log(error);
+    throw new Error(error);
+  }
+} */
+
+async function createApartmentDataTable(apartment, useDefaultTaxes = false) {
+  // @todo add a JSON file handler to update with new apartment
+  const tableName = `kommun_${apartment}`;
+  const taxesTableName = useDefaultTaxes ? 'taxes' : `taxes_${apartment}`;
+  try {
+    const query = `
+      CREATE TABLE IF NOT EXISTS ${tableName} (
+        id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+        gas INT NOT NULL,
+        water INT NOT NULL,
+        dayelec INT NOT NULL,
+        nightelec INT NOT NULL,
+        heat INT DEFAULT 0,
+        notes VARCHAR(255),
+        created_at DATE NOT NULL DEFAULT CURRENT_DATE,
+        updated_at DATE NOT NULL DEFAULT CURRENT_DATE,
+        user_id uuid references users(id),
+        tax_id uuid REFERENCES ${taxesTableName}(id) ON DELETE SET NULL
+      );
+    `;
+    return db.none(query);
+  } catch (err) {
+    const error = `CREATE APARTMENT DATA TABLE ERROR: ${err}`;
+    console.error(error);
+    throw new Error(error);
+  }
+}
+
+async function createApartmentTaxesTable(apartment) {
+  const tableName = `taxes_${apartment}`;
+  try {
+    const query = `
+      CREATE TABLE IF NOT EXISTS ${tableName} (
+        id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+        start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        end_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        gas_tax float(2),
+        water_tax float(2),
+        dayelec_tax float(2),
+        nightelec_tax float(2),
+        trash_fixed float(2),
+        water_delivery_fixed float(2),
+        user_id uuid references users(id)
+      );
+    `;
+    return db.none(query);
+  } catch (err) {
+    const error = `CREATE APARTMENT TAXES TABLE ERROR: ${err}`;
+    console.error(error);
+    throw new Error(error);
+  }
+}
+
+module.exports = {
+  insertKommunInfo,
+  getPrevMonthInfo,
+  updateCurrentMonthKommuns,
+  getLastTaxes,
+  getHistoricalDataFrom,
+  updateTaxClose,
+  createTax,
+  createApartmentDataTable,
+  createApartmentTaxesTable,
+  getLastCommunRecord,
+};

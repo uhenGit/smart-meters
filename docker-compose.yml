@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # 1. DB
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: meters
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # 2. Node.js backend
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://admin:secret@db:5432/meters
+    depends_on:
+      - db
+
+  # 3. Vue3 frontend (in prod only — nginx serves build)
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
