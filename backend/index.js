@@ -1,7 +1,7 @@
 const express = require('express');
 const cookiesParser = require('cookie-parser');
 const cors = require('cors');
-const dashboard = require('./routes/form');
+const form = require('./routes/form');
 const history = require('./routes/history');
 const statistics = require('./routes/statistics');
 const admin = require('./routes/admin');
@@ -21,7 +21,7 @@ app.use(cors({
 }));
 
 app.use('/api/v1/auth', auth);
-app.use('/api/v1/dashboard', authMiddleware, dashboard);
+app.use('/api/v1/form', authMiddleware, form);
 app.use('/api/v1/history', authMiddleware, history);
 app.use('/api/v1/statistics', authMiddleware, statistics);
 app.use('/api/v1/admin', authMiddleware, admin);

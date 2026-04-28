@@ -131,7 +131,7 @@ async function updateCurrentMonthKommuns(data, period, userID) {
 async function getLastTaxes() {
   try {
     const query = `SELECT * FROM taxes WHERE start_date = end_date`;
-    return db.one(query);
+    return db.oneOrNone(query);
   } catch (err) {
     const error = `GET TAXES ERROR ${err}`;
     console.error(error);
@@ -192,6 +192,11 @@ async function updateTaxClose(closeDate, id) {
   }
 }
 
+/***
+ * Create new taxes from the users unput, start_date should be equal to end_date.
+ * @param {Object} data - users input and id
+ * @param {String} period - current date  
+ */
 async function createTax(data, period) {
   const { gas_tax, water_tax, dayelec_tax, nightelec_tax, trash_fixed, water_delivery_fixed, user_id } = data;
   try {
@@ -269,12 +274,29 @@ async function createApartmentTaxesTable(apartment) {
         user_id uuid references users(id)
       );
     `;
+
     return db.none(query);
   } catch (err) {
     const error = `CREATE APARTMENT TAXES TABLE ERROR: ${err}`;
     console.error(error);
     throw new Error(error);
   }
+}
+
+async function deleteTaxBy(id) {
+  const query = `DELETE FROM taxes WHERE id = $1;`;
+
+  db.none(query, [id])
+  .then(() => {
+    console.log('DELETE SUCCESS');
+
+    return id;
+  })
+  .catch((err) => {
+    const error = `DELETE TAX ERROR ${err}`;
+    console.error(error);
+    throw new Error(error);
+  });
 }
 
 module.exports = {
@@ -285,6 +307,7 @@ module.exports = {
   getHistoricalDataFrom,
   updateTaxClose,
   createTax,
+  deleteTaxBy,
   createApartmentDataTable,
   createApartmentTaxesTable,
   getLastCommunRecord,
