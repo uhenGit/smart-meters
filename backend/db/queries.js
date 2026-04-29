@@ -34,12 +34,12 @@ function getPrevDataPeriodFrom(currentDataPeriod, shift = 0) {
 /**
  * DB instance contains custom function truncate_to_month to avoid duplication data in the same month
  * @param {Object} param0 - object with communal data and notes
- * @param {String} userID
+ * @param {String} user_id
  * @returns {String} - formatted date
  */
-async function insertKommunInfo(
+async function insertMetricsInfo(
   { gas, water, dayelec, nightelec, heat=0, notes='' },
-  userID,
+  user_id,
   ) {
   // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
   const tableName = 'indications';
@@ -50,7 +50,7 @@ async function insertKommunInfo(
 			VALUES ($1, $2, $3, $4, $5, $6, $7, (SELECT id FROM taxes_ctx))
 			RETURNING TO_CHAR(created_at, 'yyyy-mm-dd');
 		`;
-		const { to_char: result } = await db.one(query, [gas, water, dayelec, nightelec, heat, notes, userID]);
+		const { to_char: result } = await db.one(query, [gas, water, dayelec, nightelec, heat, notes, user_id]);
     // return date formatted to { to_char: 'yyyy-mm-dd' }
     return result;
 	} catch (err) {
@@ -63,11 +63,10 @@ async function insertKommunInfo(
 /**
  * 
  * @param {String} currentDataPeriod - date to string like 'yyyy-mm-dd'
- * @param {String} apartment - apartment name to use specific table
  * @param {Number} shift - shift for the search period start (1 is for using the current month, and 0 is for the prev month)
  * @returns {Object} - DB query result or null
  */
-async function getPrevMonthInfo(currentDataPeriod, apartment, shift = 0) {
+async function getPrevMonthInfo(currentDataPeriod, shift = 0) {
   // @todo investigate shift param
   const { start, end } = getPrevDataPeriodFrom(currentDataPeriod, shift);
   // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
@@ -94,10 +93,10 @@ async function getPrevMonthInfo(currentDataPeriod, apartment, shift = 0) {
  * 
  * @param {Object} data - parsed request body values
  * @param {String} period - date to string like 'yyyy-mm-dd'
- * @param {String} userID
+ * @param {String} user_id
  * @returns {Object} - update result
  */
-async function updateCurrentMonthKommuns(data, period, userID) {
+async function updateCurrentMonthMetrics(data, period, user_id) {
   // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
   const tableName = 'indications';
   // @todo refactor update values to a separate function
@@ -107,7 +106,7 @@ async function updateCurrentMonthKommuns(data, period, userID) {
   const actualValuesToUpdate = actualUpdates.map((field) => (data[field]));
   const actualFieldsToUpdate = actualUpdates
     .map((field, idx) => (`${field} = $${idx + 1}`));
-  const clauseString = `user_id = ${userID} AND created_at >= $${actualFieldsToUpdate.length + 1} AND created_at <= $${actualFieldsToUpdate.length + 2}`;
+  const clauseString = `user_id = ${user_id} AND created_at >= $${actualFieldsToUpdate.length + 1} AND created_at <= $${actualFieldsToUpdate.length + 2}`;
   const queryString = actualFieldsToUpdate.join(', ');
 
   try {
@@ -142,10 +141,10 @@ async function getLastTaxes() {
 /**
  * DB instance contains custom function truncate_to_month to avoid duplication data in the same month
  * @param {Object} param0 - object with communal data and notes
- * @param {string} userID
+ * @param {string} user_id
  * @returns {string} - formatted data
  */
-async function getHistoricalDataFrom({ start, end }, userID) {
+async function getHistoricalDataFrom({ start, end }, user_id) {
   // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
   const tableName = 'indications';
 
@@ -155,7 +154,7 @@ async function getHistoricalDataFrom({ start, end }, userID) {
       INNER JOIN taxes ON ${tableName}.tax_id = taxes.id
       WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
     `;
-    return db.manyOrNone(query, [userID, start, end]);
+    return db.manyOrNone(query, [user_id, start, end]);
   } catch (err) {
     const error = `GET HISTORICAL DATA ERROR: ${err}`;
     console.log(error);
@@ -164,15 +163,15 @@ async function getHistoricalDataFrom({ start, end }, userID) {
 }
 
 /**
- * @param {String} userID
+ * @param {String} user_id
  * @returns
 * */
-async function getLastCommunRecord(userID) {
+async function getLastCommunRecord(user_id) {
   // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
   const tableName = 'indications';
   try {
     const query = `SELECT * FROM ${tableName} WHERE user_id = $1 ORDER BY createdat DESC LIMIT 1`;
-    const res = await db.oneOrNone(query, [userID]);
+    const res = await db.oneOrNone(query, [user_id]);
     console.log('LAST: ', res);
 
     return res;
@@ -286,23 +285,13 @@ async function createApartmentTaxesTable(apartment) {
 async function deleteTaxBy(id) {
   const query = `DELETE FROM taxes WHERE id = $1;`;
 
-  db.none(query, [id])
-  .then(() => {
-    console.log('DELETE SUCCESS');
-
-    return id;
-  })
-  .catch((err) => {
-    const error = `DELETE TAX ERROR ${err}`;
-    console.error(error);
-    throw new Error(error);
-  });
+  return db.result(query, [id]);
 }
 
 module.exports = {
-  insertKommunInfo,
+  insertMetricsInfo,
   getPrevMonthInfo,
-  updateCurrentMonthKommuns,
+  updateCurrentMonthMetrics,
   getLastTaxes,
   getHistoricalDataFrom,
   updateTaxClose,

@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 const db = require('../db/db');
 const router = express.Router();
 
-// POST /api/auth/login
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password)
@@ -55,7 +54,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// POST /api/auth/register
 router.post('/register', async (req, res) => {
     const { username, email, first_name, last_name, password } = req.body;
 
@@ -90,5 +88,12 @@ router.post('/register', async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
+
+router.post('/logout', (req, res) => {
+  console.log('req: ', req);
+  
+  res.clearCookie('accessToken', { httpOnly: true, sameSite: 'strict', maxAge: 0 });
+  res.status(200).json({ message: 'Logged out succesfully' });
+})
 
 module.exports = router;

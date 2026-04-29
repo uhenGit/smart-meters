@@ -1,6 +1,6 @@
 const express = require('express');
 const {
-  updateCurrentMonthKommuns,
+  updateCurrentMonthMetrics,
   getLastTaxes,
   getHistoricalDataFrom,
   updateTaxClose,
@@ -12,9 +12,9 @@ const { taxList, questionList } = require('../boot.js');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+/* router.get('/', (req, res) => {
   res.render('admin', { header: 'Admin page', target: '' });
-});
+}); */
 
 router.get('/get-last-taxes', async (req, res) => {
   const lastTaxItem = await getLastTaxes();
@@ -24,16 +24,17 @@ router.get('/get-last-taxes', async (req, res) => {
 });
 
 router.post('/action/get-data', async (req, res) => {
-  const apartment = req.cookies.apartment || 'default';
-  const { action_year, action_month, action } = req.body;
+  const { action_year, action_month, user_id } = req.body;
   const range = getDateRangeFrom({ start_year: action_year, start_month: action_month, end_year: action_year, end_month: action_month });
   console.log('ADMIN RANGE: ', range);
   
-  const [ targetToUpdate ] = await getHistoricalDataFrom(range, apartment);
-  res.render('admin', { formData: targetToUpdate, header: 'Insert new data', target: action });
+  const [ targetToUpdate ] = await getHistoricalDataFrom(range, user_id);
+  // res.render('admin', { formData: targetToUpdate, header: 'Insert new data', target: action });
+  res.status(200).json({ metrics: targetToUpdate });
 });
 
-router.post('/update-kommun', async (req, res) => {
+// @todo - investigate the method
+router.post('/update-metrics', async (req, res) => {
   const apartment = req.cookies.apartment || 'default';
   const endPeriod = new Date().toISOString().split('T')[0];
   const parsedInputs = parseInputs(req.body, questionList);
@@ -43,11 +44,12 @@ router.post('/update-kommun', async (req, res) => {
   }
 
   try {
-    const updatedKommun = await updateCurrentMonthKommuns(parsedInputs, endPeriod, apartment);
+    const updatedMetrics = await updateCurrentMonthMetrics(parsedInputs, endPeriod, req.body.user_id);
     // const endPeriod = new Date().toISOString().split('T')[0];
     // const [ _, currentMonthData ] = await getPrevMonthInfo(endPeriod, 0);
     // const financeResult = calculateFinancialResult(currentMonthData, prevMonthData, endPeriod);
-    res.render('index', { data: updatedKommun, prevData: null, error: null });
+    // res.render('index', { data: updatedKommun, prevData: null, error: null });
+    res.status(200).json({ metrics: updatedMetrics })
     
   } catch (err) {
     res.render('error', { data: null, prevData: null, error: err.message});
@@ -89,25 +91,30 @@ router.post('/create-tax', async (req, res) => {
     const newTaxes = await createTax(parsedInputs, endPeriod);
     console.log('new: ', newTaxes);
     
-    res.status(200).json(newTaxes);
+    res.status(201).json(newTaxes);
   } catch (err) {
+    // Duplicated start_date field detected (should be unique, so try the next day)))
     if (err.code === '23505') {
-      res.status(400).json({ error: err.detail });
+      res.status(409).json({ error: err.detail });
     } else {
       res.status(400).json({ error: 'Create taxes error' });
     }
   }
 })
 
-router.delete('/delete-tax', async (req, res) => {
-  const { tax_id } = req.body;
+router.delete('/delete-tax/:id', async (req, res, next) => {
+  const tax_id = req.params.id;
   try {
-    await deleteTaxBy(tax_id);
-    res.status(204);
+    const rows = await deleteTaxBy(tax_id);
+    
+    if (rows.rowCount === 0) {
+      return res.status(404).json({ error: 'Tax not found' });
+    }
+
+    res.status(200).json({ message: 'Tax deleted successfully' })
   } catch (err) {
     console.log('DELETE ERROR: ', err);
-    
-    res.status(400).json({ error: 'Delete tax error' });
+    next(err)
   }
 })
 
