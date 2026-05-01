@@ -35,8 +35,8 @@ router.post('/action/get-data', async (req, res) => {
 
 // @todo - investigate the method
 router.post('/update-metrics', async (req, res) => {
-  const apartment = req.cookies.apartment || 'default';
-  const endPeriod = new Date().toISOString().split('T')[0];
+  // const apartment = req.cookies.apartment || 'default';
+  const endPeriod = new Date().toLocaleDateString('en-CA');
   const parsedInputs = parseInputs(req.body, questionList);
 
   if (req.body.notes) {
@@ -45,7 +45,7 @@ router.post('/update-metrics', async (req, res) => {
 
   try {
     const updatedMetrics = await updateCurrentMonthMetrics(parsedInputs, endPeriod, req.body.user_id);
-    // const endPeriod = new Date().toISOString().split('T')[0];
+    // const endPeriod = new Date().toLocaleDateString('en-CA');
     // const [ _, currentMonthData ] = await getPrevMonthInfo(endPeriod, 0);
     // const financeResult = calculateFinancialResult(currentMonthData, prevMonthData, endPeriod);
     // res.render('index', { data: updatedKommun, prevData: null, error: null });
@@ -66,7 +66,7 @@ router.post('/update-tax', async (req, res) => {
     res.status(400).json({ error: 'Passed id is incorrect' });
   }
 
-  const endPeriod = new Date().toISOString().split('T')[0];
+  const endPeriod = new Date().toLocaleDateString('en-CA');
   const parsedInputs = parseInputs(req.body, taxList);
   delete parsedInputs.heat;
 
@@ -82,7 +82,7 @@ router.post('/update-tax', async (req, res) => {
 });
 
 router.post('/create-tax', async (req, res) => {
-  const endPeriod = new Date().toISOString().split('T')[0];
+  const endPeriod = new Date().toLocaleDateString('en-CA');
   const parsedInputs = parseInputs(req.body, taxList);
   parsedInputs.user_id = req.body.user_id;
   delete parsedInputs.heat;

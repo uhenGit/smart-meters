@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   // console.log('form get: ', req.cookies);
-  const endPeriod = new Date().toISOString().split('T')[0];
+  const endPeriod = new Date().toLocaleDateString('en-CA');
   const [ prevMonthData, currentMonthData ] = await getPrevMonthInfo(endPeriod);
 
   if (!prevMonthData) {
