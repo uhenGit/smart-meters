@@ -76,11 +76,11 @@ async function getPrevMonthInfo(currentDataPeriod, user_id, shift = 0) {
         taxes.nightelec_tax, taxes.trash_fixed, taxes.water_delivery_fixed
       FROM indications
       INNER JOIN taxes ON indications.tax_id = taxes.id
-      WHERE indications.user_id = $3 created_at >= $1 AND created_at <= $2
+      WHERE indications.user_id = $1 AND created_at >= $2 AND created_at <= $3
       ORDER BY created_at
 		`;
 
-    return db.manyOrNone(query, [start, end, user_id]);
+    return db.manyOrNone(query, [user_id, start, end]);
     
 	} catch (err) {
     const error = `GET PREV INFO ERROR: ${err}`;
