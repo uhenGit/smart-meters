@@ -75,7 +75,7 @@ router.post('/register', async (req, res) => {
         res.cookie(
           'accessToken',
           token,
-          { httpOnly: true, sameSite: 'strict', maxAge: 60480000 },
+          { httpOnly: true, sameSite: 'strict', maxAge: 60480000, secure: false },
         );
 
         res.status(201).json({ user });

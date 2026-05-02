@@ -18,7 +18,7 @@ const router = express.Router();
 }); */
 
 router.get('/get-last-taxes', async (req, res) => {
-  const lastTaxItem = await getLastTaxes();
+  const lastTaxItem = await getLastTaxes(req.user.id);
 
   res.status(200).json({ taxes: lastTaxItem });
 });
@@ -44,7 +44,7 @@ router.post('/update-metrics', async (req, res) => {
   try {
     const updatedMetrics = await updateCurrentMonthMetrics(parsed, endPeriod, req.body.user_id);
     // const endPeriod = new Date().toLocaleDateString('en-CA');
-    // const [ _, currentMonthData ] = await getPrevMonthInfo(endPeriod, 0);
+    // const [ _, currentMonthData ] = await getPrevMonthInfo(endPeriod, req.user.id, 0);
     // const financeResult = calculateFinancialResult(currentMonthData, prevMonthData, endPeriod);
     // res.render('index', { data: updatedKommun, prevData: null, error: null });
     res.status(200).json({ metrics: updatedMetrics })
@@ -55,7 +55,7 @@ router.post('/update-metrics', async (req, res) => {
 });
 
 router.post('/update-tax', async (req, res) => {
-  const { id: tax_id } = await getLastTaxes();
+  const { id: tax_id } = await getLastTaxes(req.user.id);
   const { id } = req.body;
   // console.log('body id: ', id);
   // console.log('last id: ', tax_id);

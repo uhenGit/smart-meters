@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   const endPeriod = new Date().toLocaleDateString('en-CA');
-  const [ prevMonthData, currentMonthData ] = await getPrevMonthInfo(endPeriod);
+  const [ prevMonthData, currentMonthData ] = await getPrevMonthInfo(endPeriod, req.user.id);
 
   // @todo handle as 3xx code with redirect
   if (!prevMonthData) {
@@ -18,7 +18,6 @@ router.get('/', async (req, res) => {
   const financeResult = calculateFinancialResult(currentMonthData, prevMonthData);
   const options = {
     data: currentMonthData,
-    prevData: null,
     prevDataToCompare: { gas, water, dayelec, nightelec, heat },
     financeResult,
     error: null,
@@ -26,23 +25,20 @@ router.get('/', async (req, res) => {
   res.status(200).json(options);
 });
 
-/* router.post('/reset', (req, res) => {
-  console.log('reset')
-  // res.redirect('/')
-  res.render('index', { data: null, prevData: null, action: '/admin/update' })
-}); */
-
 router.post('/submit', async (req, res) => {
   const parsed = parseInputs(req.body, questionList);
   parsed.notes = req.body.notes.trim() || '';
+
   try {
     const endPeriod = await insertMetricsInfo(parsed, req.user.id);
-    const [prevMonthData, currentMonthData] = await getPrevMonthInfo(endPeriod);
+    const [prevMonthData, currentMonthData] = await getPrevMonthInfo(endPeriod, req.user.id);
     const financeResult = calculateFinancialResult(currentMonthData, prevMonthData);
     const response = { data: currentMonthData, prevData: prevMonthData, financeResult, error: null };
+
     res.status(201).json(response);
   } catch (err) {
     let errMsg = '';
+
     if (err.message.includes('duplicate key value violates unique constraint')) {
       errMsg = 'You have already submitted data for this month';
     } else {

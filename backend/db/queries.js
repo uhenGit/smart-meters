@@ -64,19 +64,23 @@ async function insertMetricsInfo(
  * @param {Number} shift - shift for the search period start (1 is for using the current month, and 0 is for the prev month)
  * @returns {Object} - DB query result or null
  */
-async function getPrevMonthInfo(currentDataPeriod, shift = 0) {
+async function getPrevMonthInfo(currentDataPeriod, user_id, shift = 0) {
   // @todo investigate shift param
   const { start, end } = getPrevDataPeriodFrom(currentDataPeriod, shift);
   
 	try {
 		const query = `
-			SELECT * FROM indications
+			SELECT 
+        indications.*,
+        taxes.gas_tax, taxes.water_tax, taxes.dayelec_tax,
+        taxes.nightelec_tax, taxes.trash_fixed, taxes.water_delivery_fixed
+      FROM indications
       INNER JOIN taxes ON indications.tax_id = taxes.id
-      WHERE created_at >= $1 AND created_at <= $2
+      WHERE indications.user_id = $3 created_at >= $1 AND created_at <= $2
       ORDER BY created_at
 		`;
 
-    return db.manyOrNone(query, [start, end]);
+    return db.manyOrNone(query, [start, end, user_id]);
     
 	} catch (err) {
     const error = `GET PREV INFO ERROR: ${err}`;
@@ -121,10 +125,10 @@ async function updateCurrentMonthMetrics(data, period, user_id) {
 
 }
 
-async function getLastTaxes() {
+async function getLastTaxes(user_id) {
   try {
-    const query = `SELECT * FROM taxes WHERE start_date = end_date`;
-    return db.oneOrNone(query);
+    const query = `SELECT * FROM taxes WHERE start_date = end_date AND user_id = $1`;
+    return db.oneOrNone(query, [user_id]);
   } catch (err) {
     const error = `GET TAXES ERROR ${err}`;
     console.error(error);
@@ -160,7 +164,7 @@ async function getHistoricalDataFrom({ start, end }, user_id) {
 * */
 async function getLastIndicationRecord(user_id) {
   try {
-    const query = `SELECT * FROM indications WHERE user_id = $1 ORDER BY createdat DESC LIMIT 1`;
+    const query = `SELECT * FROM indications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`;
     const res = await db.oneOrNone(query, [user_id]);
     console.log('LAST: ', res);
 
