@@ -1,4 +1,4 @@
-// const { questionList } = require('../boot.js');
+const { questionList } = require('../boot.js');
 
 const calculateFinancialResult = function (cV, pV) {
   let sum = 0;
@@ -38,10 +38,10 @@ const calculateFinancialResult = function (cV, pV) {
   }
 }
 
-const parseInputs = function (inputList, questionList) {
+const parseInputs = function(inputList, questionList) {
   return questionList.reduce((acc, cV) => {
     if (cV.type === 'number') {
-      const num = parseFloat(inputList[cV.name].trim());
+      const num = (cV.name === 'heat' && !inputList.heat) ? 0 : parseFloat(inputList[cV.name]);
       acc[cV.name] = isNaN(num) ? null : num;
     }
 

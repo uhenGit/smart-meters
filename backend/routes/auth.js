@@ -90,8 +90,6 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  console.log('req: ', req);
-  
   res.clearCookie('accessToken', { httpOnly: true, sameSite: 'strict', maxAge: 0 });
   res.status(200).json({ message: 'Logged out succesfully' });
 })

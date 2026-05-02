@@ -6,10 +6,10 @@ const { questionList } = require('../boot.js');
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  // console.log('form get: ', req.cookies);
   const endPeriod = new Date().toLocaleDateString('en-CA');
   const [ prevMonthData, currentMonthData ] = await getPrevMonthInfo(endPeriod);
 
+  // @todo handle as 3xx code with redirect
   if (!prevMonthData) {
     return res.status(404).json({ error: 'Previous month metrics not found' });
   }
@@ -33,11 +33,10 @@ router.get('/', async (req, res) => {
 }); */
 
 router.post('/submit', async (req, res) => {
-  // const apartment = req.cookies.apartment || 'default';
-  const parsedInputs = parseInputs(req.body, questionList);
-  parsedInputs.notes = req.body.notes.trim() || '';
+  const parsed = parseInputs(req.body, questionList);
+  parsed.notes = req.body.notes.trim() || '';
   try {
-    const endPeriod = await insertMetricsInfo(parsedInputs, req.body.user_id);
+    const endPeriod = await insertMetricsInfo(parsed, req.user.id);
     const [prevMonthData, currentMonthData] = await getPrevMonthInfo(endPeriod);
     const financeResult = calculateFinancialResult(currentMonthData, prevMonthData);
     const response = { data: currentMonthData, prevData: prevMonthData, financeResult, error: null };

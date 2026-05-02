@@ -41,12 +41,10 @@ async function insertMetricsInfo(
   { gas, water, dayelec, nightelec, heat=0, notes='' },
   user_id,
   ) {
-  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
-  const tableName = 'indications';
 	try {
 		const query = `
       WITH taxes_ctx AS (SELECT id FROM taxes WHERE start_date = end_date)
-			INSERT INTO ${tableName} (gas, water, dayelec, nightelec, heat, notes, user_id, tax_id)
+			INSERT INTO indications (gas, water, dayelec, nightelec, heat, notes, user_id, tax_id)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, (SELECT id FROM taxes_ctx))
 			RETURNING TO_CHAR(created_at, 'yyyy-mm-dd');
 		`;
@@ -69,13 +67,11 @@ async function insertMetricsInfo(
 async function getPrevMonthInfo(currentDataPeriod, shift = 0) {
   // @todo investigate shift param
   const { start, end } = getPrevDataPeriodFrom(currentDataPeriod, shift);
-  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
-  const tableName = 'indications';
   
 	try {
 		const query = `
-			SELECT * FROM ${tableName}
-      INNER JOIN taxes ON ${tableName}.tax_id = taxes.id
+			SELECT * FROM indications
+      INNER JOIN taxes ON indications.tax_id = taxes.id
       WHERE created_at >= $1 AND created_at <= $2
       ORDER BY created_at
 		`;
@@ -97,8 +93,6 @@ async function getPrevMonthInfo(currentDataPeriod, shift = 0) {
  * @returns {Object} - update result
  */
 async function updateCurrentMonthMetrics(data, period, user_id) {
-  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
-  const tableName = 'indications';
   // @todo refactor update values to a separate function
   const { start, end } = getPrevDataPeriodFrom(period, 1);
   const actualUpdates = Object.keys(data)
@@ -111,7 +105,7 @@ async function updateCurrentMonthMetrics(data, period, user_id) {
 
   try {
     const query = `
-      UPDATE ${tableName}
+      UPDATE indications
       SET ${queryString}
       WHERE ${clauseString}
       RETURNING *;
@@ -145,13 +139,11 @@ async function getLastTaxes() {
  * @returns {string} - formatted data
  */
 async function getHistoricalDataFrom({ start, end }, user_id) {
-  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
-  const tableName = 'indications';
 
   try {
     const query = `
-      SELECT * FROM ${tableName}
-      INNER JOIN taxes ON ${tableName}.tax_id = taxes.id
+      SELECT * FROM indications
+      INNER JOIN taxes ON indications.tax_id = taxes.id
       WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
     `;
     return db.manyOrNone(query, [user_id, start, end]);
@@ -166,11 +158,9 @@ async function getHistoricalDataFrom({ start, end }, user_id) {
  * @param {String} user_id
  * @returns
 * */
-async function getLastCommunRecord(user_id) {
-  // const tableName = apartment === 'default' ? 'kommun' : `kommun_${apartment}`;
-  const tableName = 'indications';
+async function getLastIndicationRecord(user_id) {
   try {
-    const query = `SELECT * FROM ${tableName} WHERE user_id = $1 ORDER BY createdat DESC LIMIT 1`;
+    const query = `SELECT * FROM indications WHERE user_id = $1 ORDER BY createdat DESC LIMIT 1`;
     const res = await db.oneOrNone(query, [user_id]);
     console.log('LAST: ', res);
 
@@ -288,6 +278,12 @@ async function deleteTaxBy(id) {
   return db.result(query, [id]);
 }
 
+async function deleteIndicationBy(id) {
+  const query = `DELETE FROM indications WHERE id = $1;`;
+
+  return db.result(query, [id]);
+}
+
 module.exports = {
   insertMetricsInfo,
   getPrevMonthInfo,
@@ -297,7 +293,8 @@ module.exports = {
   updateTaxClose,
   createTax,
   deleteTaxBy,
+  deleteIndicationBy,
   createApartmentDataTable,
   createApartmentTaxesTable,
-  getLastCommunRecord,
+  getLastIndicationRecord,
 };
