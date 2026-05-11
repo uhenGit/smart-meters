@@ -1,0 +1,51 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: .5rem;
+  padding: .5rem 1rem;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 156%;
+  text-align: center;
+  transition: 0.3s;
+  gap: .75rem;
+  cursor: pointer;
+  border-style: solid;
+
+    &--primary {
+    border: 1px solid transparent;
+    background: var(--green-5);
+
+    &:hover {
+      background: #32b760;
+    }
+  }
+
+  &--secondary {
+    border: 1px solid transparent;
+    background: #009dbd;
+
+    &:hover {
+      border: 1px solid var(--gray-20);
+      box-shadow: 0 8px 16px 0 rgb(0 157 189 / 64%);
+    }
+  }
+
+  &--gray {
+    background: var(--gray-12);
+
+    &:hover {
+      background: var(--gray-32);
+    }
+  }
+
+  &--outlined {
+    border: 2px solid rgb(222 224 227 / 92%);
+
+    &:hover {
+      background: var(--gray-20);
+    }
+  }
+}

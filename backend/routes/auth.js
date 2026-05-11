@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db/db');
+const { authMiddleware } = require('../middleware/auth');
 const router = express.Router();
 
 router.post('/login', async (req, res) => {
@@ -91,7 +92,21 @@ router.post('/register', async (req, res) => {
 
 router.post('/logout', (req, res) => {
   res.clearCookie('accessToken', { httpOnly: true, sameSite: 'strict', maxAge: 0 });
-  res.status(200).json({ message: 'Logged out succesfully' });
+  res.status(200).json({ message: 'Logged out succesfully', ok: true });
 })
+
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await db.oneOrNone(`
+      SELECT id, username, email, first_name, last_name, role FROM users WHERE id = $1
+    `, [req.user.id]);
+
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    res.status(201).json({ user });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;
