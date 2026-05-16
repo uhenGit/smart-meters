@@ -1,13 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { getHistoricalDataFrom } = require('../db/queries')
-
-function isValidDate(value) {
-  if (typeof value !== 'string') return false
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
-  const date = new Date(value)
-  return !isNaN(date.getTime())
-}
+const { isValidDate } = require('../handlers/index')
 
 // GET /api/v1/history?start=yyyy-mm-dd&end=yyyy-mm-dd
 router.get('/', async (req, res) => {

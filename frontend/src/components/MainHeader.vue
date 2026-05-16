@@ -6,8 +6,6 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const isActive = (name: string): boolean => {
-  console.log('active: ', name === router.currentRoute.value.name);
-  
   return router.currentRoute.value.name === name
 }
 

@@ -65,7 +65,7 @@ const getDateRangeFrom = function({ start_year, start_month, end_year, end_month
   };
 }
 
-const handleHistoricalList = (monthDataList) => {
+const handleHistoricalList = function(monthDataList) {
   return monthDataList.map((monthItem, idx) => {
     const { createdat, gas, water, dayelec, nightelec, gas_tax, water_tax, dayelec_tax, nightelec_tax, trash_fixed, water_delivery_fixed } = monthItem;
     const sum = idx === 0
@@ -93,9 +93,18 @@ const handleHistoricalList = (monthDataList) => {
   }).slice(1);
 }
 
+const isValidDate = function(value) {
+  if (typeof value !== 'string') return false
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+    const date = new Date(value)
+
+    return !isNaN(date.getTime())
+}
+
 module.exports = {
   calculateFinancialResult,
   parseInputs,
   getDateRangeFrom,
   handleHistoricalList,
+  isValidDate,
 };

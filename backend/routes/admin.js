@@ -1,127 +1,141 @@
-const express = require('express');
+const express = require('express')
+const router = express.Router()
+const { authMiddleware, adminOnly } = require('../middleware/auth')
 const {
-  updateCurrentMonthMetrics,
   getLastTaxes,
-  getHistoricalDataFrom,
   updateTaxClose,
   createTax,
-  deleteTaxBy,
+  getHistoricalDataFrom,
+  updateCurrentMonthMetrics,
   deleteIndicationBy,
-} = require('../db/queries.js');
-const { parseInputs, getDateRangeFrom } = require('../handlers/index.js');
-const { taxList, questionList } = require('../boot.js');
+} = require('../db/queries')
+const { isValidDate } = require('../handlers/index')
 
-const router = express.Router();
+router.use(authMiddleware, adminOnly)
 
-/* router.get('/', (req, res) => {
-  res.render('admin', { header: 'Admin page', target: '' });
-}); */
-
-router.get('/get-last-taxes', async (req, res) => {
-  const lastTaxItem = await getLastTaxes(req.user.id);
-
-  res.status(200).json({ taxes: lastTaxItem });
-});
-
-router.post('/action/get-data', async (req, res) => {
-  const { action_year, action_month, user_id } = req.body;
-  const range = getDateRangeFrom({ start_year: action_year, start_month: action_month, end_year: action_year, end_month: action_month });
-  console.log('ADMIN RANGE: ', range);
-  
-  const [ targetToUpdate ] = await getHistoricalDataFrom(range, user_id);
-  res.status(200).json({ metrics: targetToUpdate });
-});
-
-// @todo - investigate the method
-router.post('/update-metrics', async (req, res) => {
-  const endPeriod = new Date().toLocaleDateString('en-CA');
-  const parsed = parseInputs(req.body, questionList);
-
-  if (req.body.notes) {
-    parsed.notes = req.body.notes.trim();
-  }
-
+// GET /api/v1/admin/taxes/current
+router.get('/taxes/current', async (req, res) => {
   try {
-    const updatedMetrics = await updateCurrentMonthMetrics(parsed, endPeriod, req.body.user_id);
-    // const endPeriod = new Date().toLocaleDateString('en-CA');
-    // const [ _, currentMonthData ] = await getPrevMonthInfo(endPeriod, req.user.id, 0);
-    // const financeResult = calculateFinancialResult(currentMonthData, prevMonthData, endPeriod);
-    // res.render('index', { data: updatedKommun, prevData: null, error: null });
-    res.status(200).json({ metrics: updatedMetrics })
-    
+    const taxes = await getLastTaxes(req.user.id)
+    res.json({ data: taxes, error: null })
   } catch (err) {
-    res.render('error', { data: null, prevData: null, error: err.message});
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-router.post('/update-tax', async (req, res) => {
-  const { id: tax_id } = await getLastTaxes(req.user.id);
-  const { id } = req.body;
-  // console.log('body id: ', id);
-  // console.log('last id: ', tax_id);
+// POST /api/v1/admin/taxes
+// Closes previous tax and creates a new one
+router.post('/taxes', async (req, res) => {
+  const {
+    gas_tax, water_tax, dayelec_tax, nightelec_tax,
+    trash_fixed, water_delivery_fixed,
+  } = req.body
 
-  if (tax_id !== id) {
-    res.status(400).json({ error: 'Passed id is incorrect' });
-  }
+  const fields = { gas_tax, water_tax, dayelec_tax, nightelec_tax, trash_fixed, water_delivery_fixed }
 
-  const endPeriod = new Date().toLocaleDateString('en-CA');
-  const parsed = parseInputs(req.body, taxList);
-  delete parsed.heat;
-
-  try {
-    const [ _, newTaxes ] = await Promise.allSettled([updateTaxClose(endPeriod, id), createTax(parsed, endPeriod)]);
-    // console.log('UPDATED TAXES: ', updatedTaxes);
-    // console.log('NEW TAXES: ', newTaxes);
-    res.status(200).json(newTaxes);
-  } catch (err) {
-    console.log('ERROR: ', err);
-    res.status(400).json({ error: 'Update and create taxes error' });
-  }
-});
-
-router.post('/create-tax', async (req, res) => {
-  const endPeriod = new Date().toLocaleDateString('en-CA');
-  const parsed = parseInputs(req.body, taxList);
-  parsed.user_id = req.body.user_id;
-  delete parsed.heat;
-
-  try {
-    const newTaxes = await createTax(parsed, endPeriod);
-    console.log('new: ', newTaxes);
-    
-    res.status(201).json(newTaxes);
-  } catch (err) {
-    // Duplicated start_date field detected (should be unique, so try the next day)))
-    if (err.code === '23505') {
-      res.status(409).json({ error: err.detail });
-    } else {
-      res.status(400).json({ error: 'Create taxes error' });
+  // Validate — all fields must be positive numbers
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined || value === null || isNaN(Number(value)) || Number(value) < 0) {
+      return res.status(400).json({ error: `Invalid value for field: ${key}` })
     }
   }
-})
 
-router.delete('/delete-tax/:id', async (req, res, next) => {
-  const tax_id = req.params.id;
+  const today = new Date().toLocaleDateString('en-CA')
+
   try {
-    const rows = await deleteTaxBy(tax_id);
+    const current = await getLastTaxes()
 
-    res.status(200).json({ message: `Deleted ${rows.rowCount} rows from taxes` })
+    // Close previous tax if exists
+    if (current) {
+      await updateTaxClose(today, current.id)
+    }
+
+    const newTax = await createTax(
+      { ...fields, user_id: req.user.id },
+      today
+    )
+
+    res.status(201).json({ data: newTax, error: null })
   } catch (err) {
-    console.log('DELETE TAX ERROR: ', err);
-    next(err)
+    res.status(500).json({ error: err.message })
   }
 })
 
-router.delete('/delete-indication/:id', async (req, res, next) => {
-  const indication_id = req.params.id;
-  try {
-    const rows = await deleteIndicationBy(indication_id);
+// GET /api/v1/admin/indications?start=yyyy-mm-dd&end=yyyy-mm-dd
+router.get('/indications', async (req, res) => {
+  const { start, end } = req.query
 
-    res.status(200).json({ message: `Delete ${rows.rowCount} rows from indications` });
+  if (!isValidDate(start) || !isValidDate(end)) {
+    return res.status(400).json({ error: 'Invalid date format. Expected yyyy-mm-dd' })
+  }
+  if (start > end) {
+    return res.status(400).json({ error: 'start date must be before end date' })
+  }
+
+  try {
+    const data = await getHistoricalDataFrom({ start, end }, req.user.id)
+    res.json({ data, error: null })
   } catch (err) {
-    console.log('DELETE INDICATION ERROR: ', err);
-    next(err);
+    res.status(500).json({ error: err.message })
   }
 })
 
-module.exports = router;
+// PATCH /api/v1/admin/indications/:id
+router.patch('/indications/:id', async (req, res) => {
+  const { id } = req.params
+  const allowed = ['gas', 'water', 'dayelec', 'nightelec', 'heat', 'notes']
+  const updates = {}
+
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) {
+      updates[key] = req.body[key]
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No valid fields to update' })
+  }
+
+  // Validate numeric fields
+  const numericFields = ['gas', 'water', 'dayelec', 'nightelec', 'heat']
+  for (const key of numericFields) {
+    if (updates[key] !== undefined && (isNaN(Number(updates[key])) || Number(updates[key]) < 0)) {
+      return res.status(400).json({ error: `Invalid value for field: ${key}` })
+    }
+  }
+
+  try {
+    const fields = Object.keys(updates)
+    const values = Object.values(updates)
+    const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ')
+    const query = `UPDATE indications SET ${setClause} WHERE id = $${fields.length + 1} AND user_id = $${fields.length + 2} RETURNING *`
+
+    const db = require('../db/db')
+    const result = await db.oneOrNone(query, [...values, id, req.user.id])
+
+    if (!result) return res.status(404).json({ error: 'Record not found' })
+
+    res.json({ data: result, error: null })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/v1/admin/indications/:id
+router.delete('/indications/:id', async (req, res) => {
+  const { id } = req.params
+
+  if (!id) return res.status(400).json({ error: 'Missing id' })
+
+  try {
+    const result = await deleteIndicationBy(id)
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Record not found' })
+
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+module.exports = router
