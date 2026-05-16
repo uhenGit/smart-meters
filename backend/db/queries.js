@@ -148,7 +148,7 @@ async function getHistoricalDataFrom({ start, end }, user_id) {
     const query = `
       SELECT * FROM indications
       INNER JOIN taxes ON indications.tax_id = taxes.id
-      WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
+      WHERE indications.user_id = $1 AND created_at >= $2 AND created_at <= $3
     `;
     return db.manyOrNone(query, [user_id, start, end]);
   } catch (err) {

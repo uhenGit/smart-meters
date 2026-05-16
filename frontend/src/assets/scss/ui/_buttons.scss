@@ -48,4 +48,10 @@
       background: var(--gray-20);
     }
   }
+
+  &--sm {
+    padding: .375rem .75rem;
+    outline: none;
+    border: none;
+  }
 }

@@ -1,25 +1,32 @@
-const express = require('express');
-const { getHistoricalDataFrom } = require('../db/queries.js');
-const { getDateRangeFrom, handleHistoricalList } = require('../handlers/index.js');
-const router = express.Router();
+const express = require('express')
+const router = express.Router()
+const { getHistoricalDataFrom } = require('../db/queries')
 
-router.get('/', (req, res) => {
-  res.render('history', { header: 'Kommun history' });
-});
+function isValidDate(value) {
+  if (typeof value !== 'string') return false
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(value)
+  return !isNaN(date.getTime())
+}
 
-router.post('/get-data', async (req, res) => {
-  const apartment = req.cookies.apartment || 'default';
-  const { start, end } = getDateRangeFrom(req.body);
+// GET /api/v1/history?start=yyyy-mm-dd&end=yyyy-mm-dd
+router.get('/', async (req, res) => {
+  const { start, end } = req.query
 
-  if (new Date(end) < new Date(start)) {
-    res.render('history', { header: 'Error', error: 'End date must be greater than start date' });
-    return;
+  if (!isValidDate(start) || !isValidDate(end)) {
+    return res.status(400).json({ error: 'Invalid date format. Expected yyyy-mm-dd' })
   }
-  
-  const historicalKommunList = await getHistoricalDataFrom({ start, end }, apartment);
-  const processedHistoricalList = handleHistoricalList(historicalKommunList);
 
-  res.render('history', { header: 'Result', result: processedHistoricalList });
-});
+  if (start > end) {
+    return res.status(400).json({ error: 'start date must be before end date' })
+  }
 
-module.exports = router;
+  try {
+    const data = await getHistoricalDataFrom({ start, end }, req.user.id)
+    res.json({ data, error: null })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+module.exports = router

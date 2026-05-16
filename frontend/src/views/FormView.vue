@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { ref, shallowRef, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import MainHeader from '@/components/MainHeader.vue'
 import api from '@/api/axios'
-import { useAuthStore } from '@/stores/auth'
 import type { Indication, FinanceResult } from '@/types'
-
-const router = useRouter()
-const auth = useAuthStore()
 
 type PrevData = Pick<Indication, 'gas' | 'water' | 'dayelec' | 'nightelec' | 'heat'>
 
@@ -49,7 +45,7 @@ const calcDiff = (field: keyof PrevData): number | null => {
   const current = form[field as keyof typeof form]
   const prev    = prevData.value?.[field]
 
-  if (current === null || !current || prev === undefined || prev === null) return null
+  if (current === null || prev === undefined || prev === null) return null
 
   return (current as number) - prev
 }
@@ -87,11 +83,6 @@ const handleSubmit = async () => {
   }
 }
 
-const handleLogout = async () => {
-  await auth.logout()
-  router.push({ name: 'login' })
-}
-
 onMounted(async () => {
   try {
     const { data } = await api.get('/form')
@@ -107,16 +98,9 @@ onMounted(async () => {
 
 <template>
   <div class="form-view">
-    <header class="form-view__header flex">
-      <h1>Meter readings</h1>
-      <button
-        class="btn btn--outline"
-        @click="handleLogout"
-      >
-      Logout
-    </button>
-    </header>
+    <main-header />
 
+    <h2 class="form-view__title">Data Form</h2>
     <div v-if="isLoading" class="form-view__state">Loading...</div>
     <div v-else-if="fetchError" class="form-view__state form-view__state--error">{{ fetchError }}</div>
 
@@ -297,10 +281,8 @@ onMounted(async () => {
   margin: 0 auto;
   padding: 2rem 1rem;
 
-  &__header {
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
+  &__title {
+    margin-bottom: 1.5rem;
   }
 
   &__state {
