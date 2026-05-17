@@ -182,9 +182,9 @@ onMounted(fetchCurrentTax)
       <template v-else>
         <div class="tax-table">
           <div class="tax-table__row tax-table__row--header">
-            <div class="tax-table__cell">Service</div>
+            <div class="tax-table__cell start">Service</div>
             <div class="tax-table__cell">Current rate</div>
-            <div class="tax-table__cell">New rate</div>
+            <div class="tax-table__cell end">New rate</div>
           </div>
 
           <div
@@ -192,11 +192,11 @@ onMounted(fetchCurrentTax)
             :key="field.key"
             class="tax-table__row"
           >
-            <div class="tax-table__cell tax-table__cell--label">{{ field.label }}</div>
+            <div class="tax-table__cell tax-table__cell--label start">{{ field.label }}</div>
             <div class="tax-table__cell">
               {{ currentTax ? currentTax[field.key] : '—' }}
             </div>
-            <div class="tax-table__cell">
+            <div class="tax-table__cell end">
               <input
                 v-model.number="newTax[field.key]"
                 class="tax-table__input w-100"
@@ -214,7 +214,7 @@ onMounted(fetchCurrentTax)
             New tax rates saved successfully.
           </p>
           <button
-            class="btn btn--primary"
+            class="btn btn--primary btn--sm"
             :disabled="!isTaxFormValid || taxSubmitting"
             @click="submitNewTax"
           >
@@ -269,35 +269,45 @@ onMounted(fetchCurrentTax)
 
       <div v-else-if="indications.length > 0" class="ind-table">
         <div class="ind-table__row ind-table__row--header">
-          <div class="ind-table__cell">Date</div>
+          <div class="ind-table__cell start">Date</div>
           <div class="ind-table__cell">Gas</div>
           <div class="ind-table__cell">Water</div>
           <div class="ind-table__cell">Elec (day)</div>
           <div class="ind-table__cell">Elec (night)</div>
           <div class="ind-table__cell">Heat</div>
           <div class="ind-table__cell">Notes</div>
-          <div class="ind-table__cell">Actions</div>
+          <div class="ind-table__cell end">Actions</div>
         </div>
 
         <template v-for="record in indications" :key="record.id">
           <!-- View row -->
           <div v-if="editingId !== record.id" class="ind-table__row">
-            <div class="ind-table__cell">{{ formatDate(record.created_at) }}</div>
+            <div class="ind-table__cell start">{{ formatDate(record.created_at) }}</div>
             <div class="ind-table__cell">{{ record.gas }}</div>
             <div class="ind-table__cell">{{ record.water }}</div>
             <div class="ind-table__cell">{{ record.dayelec }}</div>
             <div class="ind-table__cell">{{ record.nightelec }}</div>
             <div class="ind-table__cell">{{ record.heat || '—' }}</div>
-            <div class="ind-table__cell ind-table__cell--notes">{{ record.notes || '—' }}</div>
-            <div class="ind-table__cell ind-table__cell--actions flex">
-              <button class="btn btn--sm btn--outline" @click="startEdit(record)">Edit</button>
-              <button class="btn btn--sm btn--danger" @click="deleteTargetId = record.id">Delete</button>
+            <div class="ind-table__cell ind-table__cell--notes truncate">{{ record.notes || '—' }}</div>
+            <div class="ind-table__cell ind-table__cell--actions flex end">
+              <button
+                class="btn btn--outline btn--xs"
+                @click="startEdit(record)"
+              >
+                Edit
+              </button>
+              <button
+                class="btn btn--danger btn--xs"
+                @click="deleteTargetId = record.id"
+              >
+                Delete
+              </button>
             </div>
           </div>
 
           <!-- Edit row -->
           <div v-else class="ind-table__row ind-table__row--editing">
-            <div class="ind-table__cell">{{ formatDate(record.created_at) }}</div>
+            <div class="ind-table__cell start">{{ formatDate(record.created_at) }}</div>
             <div class="ind-table__cell">
               <input
                 v-model.number="editBuffer.gas"
@@ -338,7 +348,7 @@ onMounted(fetchCurrentTax)
                 class="ind-table__input w-100"
               />
             </div>
-            <div class="ind-table__cell">
+            <div class="ind-table__cell end">
               <input
                 v-model="editBuffer.notes"
                 type="text"
@@ -347,13 +357,13 @@ onMounted(fetchCurrentTax)
             </div>
             <div class="ind-table__cell ind-table__cell--actions flex">
               <button
-                class="btn btn--sm btn--primary"
+                class="btn btn--primary btn--xs"
                 @click="saveEdit(record.id)"
               >
                 Save
               </button>
               <button
-                class="btn btn--sm btn--outline"
+                class="btn btn--outline btn--xs"
                 @click="cancelEdit"
               >
                 Cancel
@@ -375,13 +385,13 @@ onMounted(fetchCurrentTax)
             <p class="modal__text">Are you sure you want to delete this record? This action cannot be undone.</p>
             <div class="modal__actions flex">
               <button
-                class="btn btn--outline"
+                class="btn btn--outline btn--sm"
                 @click="deleteTargetId = null"
               >
                 Cancel
               </button>
               <button
-                class="btn btn--danger"
+                class="btn btn--danger btn--sm"
                 @click="confirmDelete(deleteTargetId!)"
               >
                 Delete
@@ -400,7 +410,9 @@ onMounted(fetchCurrentTax)
   margin: 0 auto;
   padding: 2rem 1rem;
 
-  &__title   { margin-bottom: 1.5rem; }
+  &__title   {
+    margin-bottom: 1.5rem;
+  }
 
   &__tabs {
     gap: 0.25rem;
@@ -457,12 +469,12 @@ onMounted(fetchCurrentTax)
   font-size: 0.9375rem;
   cursor: pointer;
   margin-bottom: -2px;
-  color: #6b7280;
+  color: var(--text);
   transition: color 0.15s, border-color 0.15s;
 
   &--active {
-    color: #2563eb;
-    border-bottom-color: #2563eb;
+    color: var(--info);
+    border-bottom-color: var(--info);
     font-weight: 600;
   }
 
@@ -471,22 +483,32 @@ onMounted(fetchCurrentTax)
 
 %table-row {
   display: grid;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
   min-height: 3rem;
+
+  .start {
+    justify-content: start;
+  }
+
+  .end {
+    justify-content: end;
+    padding-inline-end: .5rem;
+  }
 }
 
 %table-cell {
   padding: 0.75rem 0.5rem;
-  font-size: 0.9375rem;
+  font-size: .9375rem;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 %table-input {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   border-radius: 0.375rem;
   padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 
   &[type='number'] {
     appearance: textfield;
@@ -503,7 +525,13 @@ onMounted(fetchCurrentTax)
     @extend %table-row;
     grid-template-columns: 2fr 1fr 1fr;
 
-    &--header { font-weight: 600; background: #f9fafb; }
+    &--header {
+      font-weight: 600; background: #f9fafb;
+
+      .end {
+        padding-inline-end: 1.5rem;
+      }
+    }
   }
 
   &__cell {
@@ -522,11 +550,19 @@ onMounted(fetchCurrentTax)
     @extend %table-row;
     grid-template-columns: 7rem repeat(5, 1fr) 2fr 7rem;
 
-    &--header  { font-weight: 600; background: #f9fafb; }
+    &--header  {
+      font-weight: 600; background: #f9fafb;
+
+      .end {
+        padding-inline-end: .75rem;
+      }
+    }
     &--editing { background: #eff6ff; }
   }
 
   &__cell {
+    width: 6.5rem;
+
     @extend %table-cell;
 
     &--notes   { color: #6b7280; font-size: 0.875rem; }

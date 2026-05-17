@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 
   try {
     const data = await getHistoricalDataFrom({ start, end }, req.user.id)
-    res.json({ data, error: null })
+    res.status(200).json({ data, error: null })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

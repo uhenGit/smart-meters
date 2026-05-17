@@ -165,10 +165,12 @@ function formatDate(dateStr: string): string {
     }
   }
 
-  &__fetch-btn { align-self: flex-end; }
+  &__fetch-btn {
+    align-self: flex-end;
+  }
 
-  &__error { color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; }
-  &__empty { color: #6b7280; font-size: 0.9375rem; margin-top: 2rem; text-align: center; }
+  &__error { color: var(--danger); font-size: 0.875rem; margin-bottom: 1rem; }
+  &__empty { color: var(--gray-32); font-size: 0.9375rem; margin-top: 2rem; text-align: center; }
 }
 
 .history-table {

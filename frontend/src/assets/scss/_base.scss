@@ -8,7 +8,7 @@
 
 a {
   text-decoration: none;
-  color: var(--border);
+  color: var(--text-light);
 }
 
 .flex {
@@ -26,4 +26,10 @@ a {
 
 .w-100 {
   width: 100%;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

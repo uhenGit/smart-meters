@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, reactive, computed, onMounted } from 'vue'
+import type { ComputedRef } from 'vue'
 import MainHeader from '@/components/MainHeader.vue'
 import api from '@/api/axios'
 import type { Indication, FinanceResult } from '@/types'
@@ -25,12 +26,12 @@ const form = reactive({
 })
 
 // Live diff: new - prev, null if either side is missing
-const diff = computed(() => ({
-  gas: calcDiff('gas'),
-  water: calcDiff('water'),
-  dayelec: calcDiff('dayelec'),
-  nightelec: calcDiff('nightelec'),
-  heat: calcDiff('heat'),
+const diff: ComputedRef<Record<string, number | null>> = computed(() => ({
+  'gas': calcDiff('gas'),
+  'water': calcDiff('water'),
+  'dayelec': calcDiff('dayelec'),
+  'nightelec': calcDiff('nightelec'),
+  'heat': calcDiff('heat'),
 }))
 
 const isFormValid = computed(() =>
@@ -43,7 +44,7 @@ const isFormValid = computed(() =>
 
 const calcDiff = (field: keyof PrevData): number | null => {
   const current = form[field as keyof typeof form]
-  const prev    = prevData.value?.[field]
+  const prev = prevData.value?.[field]
 
   if (current === null || prev === undefined || prev === null) return null
 
@@ -64,7 +65,19 @@ const diffClass = (value: number | null): string => {
   return ''
 }
 
+const formHasNegative = (): boolean | undefined => {
+  for (const val in diff.value) {
+    return diff.value[val] ? diff.value[val] < 0 : false
+  }
+}
+
 const handleSubmit = async () => {
+  if (formHasNegative()) {
+    submitError.value = 'One or more field contains value that less than previous data'
+
+    return
+  }
+  
   submitError.value = null
   isSubmitting.value = true
 

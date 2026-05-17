@@ -19,29 +19,41 @@ const handleLogout = async () => {
     <h1 class="header__title">Meter readings</h1>
     <nav class="flex w-100">
       <ul class="header__nav flex">
-        <li
-          class="header__nav-item"
-          :class="{ 'header__nav-item--active': isActive('form') }"
-        >
-          <router-link to="/">Home</router-link>
+        <li>
+          <router-link
+            to="/"
+            class="header__nav-item"
+            :class="{ 'header__nav-item--active': isActive('form') }"
+          >
+            Home
+          </router-link>
         </li>
-        <li
-          class="header__nav-item"
-          :class="{ 'header__nav-item--active': isActive('history') }"
-        >
-          <router-link to="/history">History</router-link>
+        <li>
+          <router-link
+            to="/history"
+            class="header__nav-item"
+            :class="{ 'header__nav-item--active': isActive('history') }"
+          >
+            History
+          </router-link>
         </li>
-        <li
-          class="header__nav-item"
-          :class="{ 'header__nav-item--active': isActive('admin') }"
-        >
-          <router-link to="/admin">Admin</router-link>
+        <li v-if="auth.isAdmin">
+          <router-link
+            to="/admin"
+            class="header__nav-item"
+            :class="{ 'header__nav-item--active': isActive('admin') }"
+          >
+            Admin
+          </router-link>
         </li>
-        <li
-          class="header__nav-item"
-          :class="{ 'header__nav-item--active': isActive('statistics') }"
-        >
-          <router-link to="/statistics">Statistics</router-link>
+        <li>
+          <router-link
+            to="/statistics"
+            class="header__nav-item"
+            :class="{ 'header__nav-item--active': isActive('statistics') }"
+          >
+            Statistics
+          </router-link>
         </li>
       </ul>
     </nav>
@@ -69,10 +81,13 @@ const handleLogout = async () => {
     gap: 1rem;
     justify-content: start;
     margin-left: 1rem;
+
+    li {
+      list-style: none;
+    }
   }
 
   &__nav-item {
-    list-style: none;
     border: 1px solid transparent;
     border-radius: .25rem;
     transition-duration: .3s;

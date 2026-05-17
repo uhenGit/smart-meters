@@ -17,7 +17,7 @@ router.use(authMiddleware, adminOnly)
 router.get('/taxes/current', async (req, res) => {
   try {
     const taxes = await getLastTaxes(req.user.id)
-    res.json({ data: taxes, error: null })
+    res.status(200).json({ data: taxes, error: null })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -74,7 +74,7 @@ router.get('/indications', async (req, res) => {
 
   try {
     const data = await getHistoricalDataFrom({ start, end }, req.user.id)
-    res.json({ data, error: null })
+    res.status(200).json({ data, error: null })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -115,7 +115,7 @@ router.patch('/indications/:id', async (req, res) => {
 
     if (!result) return res.status(404).json({ error: 'Record not found' })
 
-    res.json({ data: result, error: null })
+    res.status(200).json({ data: result, error: null })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -132,7 +132,7 @@ router.delete('/indications/:id', async (req, res) => {
 
     if (result.rowCount === 0) return res.status(404).json({ error: 'Record not found' })
 
-    res.json({ ok: true })
+    res.res(200).json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
