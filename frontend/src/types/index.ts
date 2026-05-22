@@ -50,3 +50,44 @@ export interface FormResponse {
   financeResult: FinanceResult | null
   error: string | null
 }
+
+export interface StatisticsRecord {
+  id: string
+  created_at: string
+  gas: number
+  water: number
+  dayelec: number
+  nightelec: number
+  heat: number
+  notes: string
+  gas_tax: number
+  water_tax: number
+  dayelec_tax: number
+  nightelec_tax: number
+  trash_fixed: number
+  water_delivery_fixed: number
+  tax_start: string
+  tax_end: string
+}
+
+export interface ComputedRow extends StatisticsRecord {
+  cost: {
+    gas: number
+    water: number
+    dayelec: number
+    nightelec: number
+    heat: number
+    trash: number
+    water_delivery: number
+    total: number
+  }
+  diff: {
+    gas: number | null
+    water: number | null
+    dayelec: number | null
+    nightelec: number | null
+    heat: number | null
+    total: number | null
+    taxChanged: boolean
+  }
+}
