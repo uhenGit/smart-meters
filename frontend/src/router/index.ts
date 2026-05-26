@@ -33,13 +33,6 @@ const router = createRouter({
       name: 'admin',
       component: () => import('@/views/AdminView.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
-      beforeEnter: (to, from, next) => {
-        const auth = useAuthStore()
-
-        if (!auth.isAdmin) return next({ name: 'form' })
-
-        next()
-      }
     },
     {
       path: '/:pathMatch(.*)*',

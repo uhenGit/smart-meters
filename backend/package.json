@@ -4,7 +4,16 @@
   "description": "server app that allows input, handle, calculate, and save meter readings into the pg-database",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "node-pg-migrate",
+    "migrate:up": "node-pg-migrate up",
+    "migrate:down": " node-pg-migrate down",
+    "migrate:create": "node-pg-migrate create"
+  },
+  "node-pg-migrate": {
+    "migrationsTable": "pgmigrations",
+    "dir": "migrations",
+    "databaseUrl": ""
   },
   "keywords": [
     "postgres",
@@ -22,7 +31,10 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.13.3",
+    "pg": "^8.21.0",
     "pg-promise": "^11.10.2"
+  },
+  "devDependencies": {
+    "node-pg-migrate": "^8.0.4"
   }
 }
