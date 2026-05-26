@@ -8,6 +8,7 @@ const {
   getHistoricalDataFrom,
   updateCurrentMonthMetrics,
   deleteIndicationBy,
+  replaceTax,
 } = require('../db/queries')
 const { isValidDate } = require('../handlers/index')
 
@@ -43,14 +44,7 @@ router.post('/taxes', async (req, res) => {
   const today = new Date().toLocaleDateString('en-CA')
 
   try {
-    const current = await getLastTaxes()
-
-    // Close previous tax if exists
-    if (current) {
-      await updateTaxClose(today, current.id)
-    }
-
-    const newTax = await createTax(
+    const newTax = await replaceTax(
       { ...fields, user_id: req.user.id },
       today
     )

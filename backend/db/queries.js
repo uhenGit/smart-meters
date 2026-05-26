@@ -40,22 +40,37 @@ function getPrevDataPeriodFrom(currentDataPeriod, shift = 0) {
 async function insertMetricsInfo(
   { gas, water, dayelec, nightelec, heat=0, notes='' },
   user_id,
-  ) {
-	try {
-		const query = `
-      WITH taxes_ctx AS (SELECT id FROM taxes WHERE start_date = end_date)
-			INSERT INTO indications (gas, water, dayelec, nightelec, heat, notes, user_id, tax_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, (SELECT id FROM taxes_ctx))
-			RETURNING TO_CHAR(created_at, 'yyyy-mm-dd');
-		`;
-		const { to_char: result } = await db.one(query, [gas, water, dayelec, nightelec, heat, notes, user_id]);
-    // return date formatted to { to_char: 'yyyy-mm-dd' }
-    return result;
-	} catch (err) {
+) {
+  try {
+    return await db.tx(async t => {
+      // Step 1: lock the current tax row inside the transaction
+      const tax = await t.oneOrNone(`
+        SELECT id FROM taxes
+        WHERE start_date = end_date
+        AND user_id = $1
+        FOR UPDATE
+      `, [user_id])
+
+      if (!tax) {
+        throw new Error('No active tax record found. Please create taxes first.')
+      }
+
+      // Step 2: insert indication using the locked tax id
+      const { to_char: result } = await t.one(`
+        INSERT INTO indications
+          (gas, water, dayelec, nightelec, heat, notes, user_id, tax_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING TO_CHAR(created_at, 'yyyy-mm-dd')
+      `, [gas, water, dayelec, nightelec, heat, notes, user_id, tax.id])
+
+      // return date formatted to { to_char: 'yyyy-mm-dd' }
+      return result
+    })
+  } catch (err) {
     const error = `SAVE DATA ERROR: ${err.message}`;
-		console.error(error);
+    console.error(error);
     throw new Error(error);
-	}
+  }
 }
 
 /**
@@ -174,7 +189,57 @@ async function getLastIndicationRecord(user_id) {
   }
 }
 
-async function updateTaxClose(closeDate, id) {
+/***
+ * Using the transactions to handle lock previuos taxes and create a new one.
+ * Create new taxes from the users unput, start_date should be equal to end_date.
+ * @param {Object} taxData - users input and id
+ * @param {String} period - current date
+ * @returns {Object} - new tax
+ */
+async function replaceTax(taxData, period) {
+  const {
+    gas_tax, water_tax, dayelec_tax, nightelec_tax,
+    trash_fixed, water_delivery_fixed, user_id,
+  } = taxData
+
+  try {
+    return await db.tx(async t => {
+      // Step 1: close the current active tax if one exists
+      const current = await t.oneOrNone(`
+        SELECT id FROM taxes
+        WHERE start_date = end_date
+        AND user_id = $1
+        FOR UPDATE
+      `, [user_id])
+
+      if (current) {
+        await t.one(`
+          UPDATE taxes SET end_date = $1
+          WHERE id = $2
+          RETURNING *
+        `, [period, current.id])
+      }
+
+      // Step 2: create the new tax — rolls back the UPDATE above if this fails
+      const newTax = await t.one(`
+        INSERT INTO taxes
+          (start_date, end_date, gas_tax, water_tax, dayelec_tax,
+           nightelec_tax, trash_fixed, water_delivery_fixed, user_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
+      `, [period, period, gas_tax, water_tax, dayelec_tax,
+          nightelec_tax, trash_fixed, water_delivery_fixed, user_id])
+
+      return newTax
+    })
+  } catch (err) {
+    const error = `REPLACE TAX ERROR: ${err.message}`
+    console.error(error)
+    throw new Error(error)
+  }
+}
+
+/* async function updateTaxClose(closeDate, id) {
   try {
     const query = `UPDATE taxes SET end_date = $1 WHERE id = $2 RETURNING *;`;
     return db.one(query, [closeDate, id]);
@@ -183,14 +248,14 @@ async function updateTaxClose(closeDate, id) {
     console.error(error);
     throw new Error(error);
   }
-}
+} */
 
 /***
  * Create new taxes from the users unput, start_date should be equal to end_date.
  * @param {Object} data - users input and id
  * @param {String} period - current date  
  */
-async function createTax(data, period) {
+/* async function createTax(data, period) {
   const { gas_tax, water_tax, dayelec_tax, nightelec_tax, trash_fixed, water_delivery_fixed, user_id } = data;
   try {
     const query = `
@@ -204,7 +269,7 @@ async function createTax(data, period) {
     console.error(error);
     throw new Error(error);
   }
-}
+} */
 
 /* async function getHistoricalTaxesFrom({ start, end }) {
   try {
@@ -301,4 +366,5 @@ module.exports = {
   createApartmentDataTable,
   createApartmentTaxesTable,
   getLastIndicationRecord,
+  replaceTax,
 };
