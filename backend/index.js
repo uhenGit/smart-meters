@@ -1,12 +1,14 @@
 const express = require('express');
 const cookiesParser = require('cookie-parser');
 const cors = require('cors');
+const swaggerUI = require('swagger-ui-express');
 const form = require('./routes/form');
 const history = require('./routes/history');
 const statistics = require('./routes/statistics');
 const admin = require('./routes/admin');
 const error = require('./routes/error');
 const auth = require('./routes/auth');
+const swaggerSpec = require('./swagger');
 const { authMiddleware } = require('./middleware/auth');
 
 const PORT = 3000;
@@ -19,6 +21,7 @@ app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true,
 }));
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/form', authMiddleware, form);

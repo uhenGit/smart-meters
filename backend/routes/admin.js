@@ -15,6 +15,25 @@ const { isValidDate } = require('../handlers/index')
 router.use(authMiddleware, adminOnly)
 
 // GET /api/v1/admin/taxes/current
+/**
+ * @openapi
+ * /admin/taxes/current:
+ *  get:
+ *    tags: [Admin, Taxes]
+ *    summary: Get the last active taxes for the user
+ *    responses:
+ *      200:
+ *        description: Last active tax data
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                taxes:
+ *                  $ref: '#components/schemas/Tax'
+ *      401:
+ *        $ref: '#/components/reponses/Unauthorized'
+ */
 router.get('/taxes/current', async (req, res) => {
   try {
     const taxes = await getLastTaxes(req.user.id)
@@ -25,7 +44,54 @@ router.get('/taxes/current', async (req, res) => {
 })
 
 // POST /api/v1/admin/taxes
-// Closes previous tax and creates a new one
+/**
+ * @openapi
+ * /admin/taxes:
+ *  post:
+ *    tags: [Admin, Taxes]
+ *    summary: Lock and update previous tax, create a new one (Use transactions)
+ *    security: []
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            required: [gas_tax, water_tax, dayelec_tax, nightelec_tax, trash_fixed, water_delivery_fixed]
+ *            properties:
+ *              gas_tax:
+ *                type: number
+ *                example: 20
+ *              water_tax:
+ *                type: number
+ *                example: 40
+ *              dayelec_tax:
+ *                type: number
+ *                example: 3.20
+ *              nightelec_tax:
+ *                type: number
+ *                example: 1.60
+ *              trash_fixed:
+ *                type: number
+ *                example: 71.20
+ *              water_delivery_fixed:
+ *                type: number
+ *                example: 41.70
+ *    responses:
+ *      201:
+ *        description: Tax created
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                newTax:
+ *                  $ref: '#/components/schemas/Tax'
+ *      401:
+ *        $ref: '#/components/reponses/Unauthorized'
+ *      400:
+ *        $ref: '#/components/reponses/InvalidValue'
+ */
 router.post('/taxes', async (req, res) => {
   const {
     gas_tax, water_tax, dayelec_tax, nightelec_tax,
@@ -56,6 +122,30 @@ router.post('/taxes', async (req, res) => {
 })
 
 // GET /api/v1/admin/indications?start=yyyy-mm-dd&end=yyyy-mm-dd
+/**
+ * @openapi
+ * /admin/indications:
+ *  get:
+ *    tags: [Admin, Indications]
+ *    summary: Get indications list for the provided date range
+ *    security: []
+ *    responses:
+ *      200:
+ *        description: Selected indications list
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: array
+ *              items:
+ *                type: object
+ *                  properties: 
+ *                    indication:
+ *                      $ref: '#/components/schemas/Indication'
+ *      400:
+ *        $ref: '#/components/reponses/InvalidValue'
+ *      401:
+ *        $ref: '#/components/reponses/Unauthorized'
+ */
 router.get('/indications', async (req, res) => {
   const { start, end } = req.query
 

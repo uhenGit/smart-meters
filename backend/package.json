@@ -32,7 +32,9 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.21.0",
-    "pg-promise": "^11.10.2"
+    "pg-promise": "^11.10.2",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "node-pg-migrate": "^8.0.4"

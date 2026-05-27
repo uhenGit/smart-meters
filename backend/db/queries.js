@@ -35,7 +35,7 @@ function getPrevDataPeriodFrom(currentDataPeriod, shift = 0) {
  * DB instance contains custom function truncate_to_month to avoid duplication data in the same month
  * @param {Object} param0 - object with communal data and notes
  * @param {String} user_id
- * @returns {String} - formatted date
+ * @returns {Promise<String>} - formatted date
  */
 async function insertMetricsInfo(
   { gas, water, dayelec, nightelec, heat=0, notes='' },
@@ -77,7 +77,7 @@ async function insertMetricsInfo(
  * 
  * @param {String} currentDataPeriod - date to string like 'yyyy-mm-dd'
  * @param {Number} shift - shift for the search period start (1 is for using the current month, and 0 is for the prev month)
- * @returns {Object} - DB query result or null
+ * @returns {Promise<Object>} - DB query result or none
  */
 async function getPrevMonthInfo(currentDataPeriod, user_id, shift = 0) {
   // @todo investigate shift param
@@ -109,7 +109,7 @@ async function getPrevMonthInfo(currentDataPeriod, user_id, shift = 0) {
  * @param {Object} data - parsed request body values
  * @param {String} period - date to string like 'yyyy-mm-dd'
  * @param {String} user_id
- * @returns {Object} - update result
+ * @returns {Promise<Object>} - update result
  */
 async function updateCurrentMonthMetrics(data, period, user_id) {
   // @todo refactor update values to a separate function
@@ -140,6 +140,11 @@ async function updateCurrentMonthMetrics(data, period, user_id) {
 
 }
 
+
+/**
+ * @param {string} user_id
+ * @returns {Promise<Object | null>} - last active taxes or none
+ */
 async function getLastTaxes(user_id) {
   try {
     const query = `SELECT * FROM taxes WHERE start_date = end_date AND user_id = $1`;
@@ -155,7 +160,7 @@ async function getLastTaxes(user_id) {
  * DB instance contains custom function truncate_to_month to avoid duplication data in the same month
  * @param {Object} param0 - object with communal data and notes
  * @param {string} user_id
- * @returns {string} - formatted data
+ * @returns {Promise<Array | Object | null>} - indication list or object or none
  */
 async function getHistoricalDataFrom({ start, end }, user_id) {
 
@@ -175,7 +180,7 @@ async function getHistoricalDataFrom({ start, end }, user_id) {
 
 /**
  * @param {String} user_id
- * @returns
+ * @returns {Promise<Object>} - last actications record for the provided user_id
 * */
 async function getLastIndicationRecord(user_id) {
   try {
@@ -194,7 +199,7 @@ async function getLastIndicationRecord(user_id) {
  * Create new taxes from the users unput, start_date should be equal to end_date.
  * @param {Object} taxData - users input and id
  * @param {String} period - current date
- * @returns {Object} - new tax
+ * @returns {Promise<Object>} - new tax
  */
 async function replaceTax(taxData, period) {
   const {
