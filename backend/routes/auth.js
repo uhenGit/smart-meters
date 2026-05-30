@@ -38,7 +38,7 @@ const router = express.Router();
  *                user:
  *                  $ref: '#/components/schemas/User'
  *      401:
- *        $ref: '#/components/reponses/Unauthorized'
+ *        $ref: '#/components/responses/Unauthorized'
  */
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
@@ -132,9 +132,9 @@ router.post('/login', async (req, res) => {
  *                user:
  *                  $ref: '#/components/schemas/User'
  *      400:
- *        $ref: '#/components/reponses/FieldsMissing'
+ *        $ref: '#/components/responses/FieldsMissing'
  *      401:
- *        $ref: '#/components/reponses/Unauthorized'
+ *        $ref: '#/components/responses/Unauthorized'
  *      409:
  *        $ref: '#/components/responses/FieldAlreadyTaken'
  */
@@ -179,6 +179,7 @@ router.post('/register', async (req, res) => {
  *  post:
  *    tags: [Auth]
  *    summary: Clear the access token cookie
+ *    security: []
  *    responses:
  *      200:
  *        description: Log out
@@ -193,7 +194,7 @@ router.post('/register', async (req, res) => {
  *                  type: string
  *                  example: Logged out successfully
  *      401:
- *        $ref: '#/components/reponses/Unauthorized'
+ *        $ref: '#/components/responses/Unauthorized'
  */
 router.post('/logout', (req, res) => {
   res.clearCookie('accessToken', { httpOnly: true, sameSite: 'strict', maxAge: 0 });
@@ -206,6 +207,7 @@ router.post('/logout', (req, res) => {
  *  get:
  *    tags: [Auth]
  *    summary: Get the currently authenticated user
+ *    security: []
  *    responses:
  *      200:
  *        description: Current user data
@@ -217,7 +219,7 @@ router.post('/logout', (req, res) => {
  *                user:
  *                  $ref: '#/components/schemas/User'
  *      401:
- *        $ref: '#/components/reponses/Unauthorized'
+ *        $ref: '#/components/responses/Unauthorized'
  */
 router.get('/me', authMiddleware, async (req, res) => {
   try {

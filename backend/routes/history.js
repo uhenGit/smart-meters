@@ -4,6 +4,29 @@ const { getHistoricalDataFrom } = require('../db/queries')
 const { isValidDate } = require('../handlers/index')
 
 // GET /api/v1/history?start=yyyy-mm-dd&end=yyyy-mm-dd
+/**
+ * @openapi
+ * /history:
+ *  get:
+ *    tags: [History, Indications, Taxes]
+ *    summary: Get indications and the corresponding taxes for the selected period
+ *    security: []
+ *    responses:
+ *      200:
+ *        description: A list of indications and taxes as mixed object
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: array
+ *              items:
+ *                oneOf:
+ *                  - $ref: '#/components/schemas/Indications'
+ *                  - $ref: '#/components/schemas/Taxes'
+ *      400:
+ *        $ref: '#/components/responses/InvalidValue'
+ *      401:
+ *        $ref: '#/components/responses/Unauthorized'
+ */
 router.get('/', async (req, res) => {
   const { start, end } = req.query
 
