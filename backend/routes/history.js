@@ -10,7 +10,6 @@ const { isValidDate } = require('../handlers/index')
  *  get:
  *    tags: [History, Indications, Taxes]
  *    summary: Get indications and the corresponding taxes for the selected period
- *    security: []
  *    responses:
  *      200:
  *        description: A list of indications and taxes as mixed object
@@ -20,8 +19,8 @@ const { isValidDate } = require('../handlers/index')
  *              type: array
  *              items:
  *                oneOf:
- *                  - $ref: '#/components/schemas/Indications'
- *                  - $ref: '#/components/schemas/Taxes'
+ *                  - $ref: '#/components/schemas/Indication'
+ *                  - $ref: '#/components/schemas/Tax'
  *      400:
  *        $ref: '#/components/responses/InvalidValue'
  *      401:

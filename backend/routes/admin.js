@@ -3,10 +3,9 @@ const router = express.Router()
 const { authMiddleware, adminOnly } = require('../middleware/auth')
 const {
   getLastTaxes,
-  updateTaxClose,
-  createTax,
   getHistoricalDataFrom,
   updateCurrentMonthMetrics,
+  updateSelectedMetrics,
   deleteIndicationBy,
   replaceTax,
 } = require('../db/queries')
@@ -30,7 +29,7 @@ router.use(authMiddleware, adminOnly)
  *              type: object
  *              properties:
  *                taxes:
- *                  $ref: '#components/schemas/Tax'
+ *                  $ref: '#/components/schemas/Tax'
  *      401:
  *        $ref: '#/components/responses/Unauthorized'
  */
@@ -50,7 +49,6 @@ router.get('/taxes/current', async (req, res) => {
  *  post:
  *    tags: [Admin, Taxes]
  *    summary: Lock and update previous tax, create a new one (Use transactions)
- *    security: []
  *    requestBody:
  *      required: true
  *      content:
@@ -128,7 +126,6 @@ router.post('/taxes', async (req, res) => {
  *  get:
  *    tags: [Admin, Indications]
  *    summary: Get indications list for the provided date range
- *    security: []
  *    responses:
  *      200:
  *        description: Selected indications list
@@ -167,18 +164,17 @@ router.get('/indications', async (req, res) => {
 // PATCH /api/v1/admin/indications/:id
 /**
  * @openapi
- * /admin/indications/:id:
+ * /admin/indications/{id}:
  *  patch:
  *    tags: [Admin, Indications]
  *    summary: Update existed indication
- *    security: []
  *    parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: uuid of the indication to update
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: uuid of the indication to update
  *    requestBody:
  *      required: true
  *      content:
@@ -205,7 +201,7 @@ router.get('/indications', async (req, res) => {
  *                type: string
  *                example: August 2025
  *    responses:
- *      201:
+ *      200:
  *        description: Indication updated
  *        content:
  *          application/json:
@@ -245,17 +241,11 @@ router.patch('/indications/:id', async (req, res) => {
   }
 
   try {
-    const fields = Object.keys(updates)
-    const values = Object.values(updates)
-    const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ')
-    const query = `UPDATE indications SET ${setClause} WHERE id = $${fields.length + 1} AND user_id = $${fields.length + 2} RETURNING *`
-
-    const db = require('../db/db')
-    const result = await db.oneOrNone(query, [...values, id, req.user.id])
+    const result = await updateSelectedMetrics(updates, id, req.user.id)
 
     if (!result) return res.status(404).json({ error: 'Record not found' })
 
-    res.status(201).json({ data: result, error: null })
+    res.status(200).json({ data: result, error: null })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -264,7 +254,7 @@ router.patch('/indications/:id', async (req, res) => {
 // DELETE /api/v1/admin/indications/:id
 /**
  * @openapi
- * /admin/indications:
+ * /admin/indications/{id}:
  *  delete:
  *    tags: [Admin, Indications]
  *    summary: Delete selected indications record
@@ -275,7 +265,6 @@ router.patch('/indications/:id', async (req, res) => {
  *          type: string
  *        required: true
  *        description: uuid of the indications to delete
- *    security: []
  *    responses:
  *      200:
  *        description: Deleted
@@ -291,7 +280,7 @@ router.patch('/indications/:id', async (req, res) => {
  *      401:
  *        $ref: '#/components/responses/Unauthorized'
  *      404:
- *        $ref: '#/componsnts/responses/NotFound'
+ *        $ref: '#/components/responses/NotFound'
  */
 router.delete('/indications/:id', async (req, res) => {
   const { id } = req.params
@@ -303,7 +292,7 @@ router.delete('/indications/:id', async (req, res) => {
 
     if (result.rowCount === 0) return res.status(404).json({ error: 'Record not found' })
 
-    res.res(200).json({ ok: true })
+    res.status(200).json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

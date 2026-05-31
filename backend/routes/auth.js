@@ -61,11 +61,17 @@ router.post('/login', async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
         );
+        const week = 7 * 24 * 60 * 60 * 1000;
 
         res.cookie(
           'accessToken',
           token,
-          { httpOnly: true, sameSite: 'strict', maxAge: 604800000 },
+          {
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: false,
+            maxAge: week,
+          },
         );
 
         res.status(200).json({
@@ -179,7 +185,6 @@ router.post('/register', async (req, res) => {
  *  post:
  *    tags: [Auth]
  *    summary: Clear the access token cookie
- *    security: []
  *    responses:
  *      200:
  *        description: Log out
@@ -207,7 +212,6 @@ router.post('/logout', (req, res) => {
  *  get:
  *    tags: [Auth]
  *    summary: Get the currently authenticated user
- *    security: []
  *    responses:
  *      200:
  *        description: Current user data

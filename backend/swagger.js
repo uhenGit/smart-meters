@@ -94,7 +94,7 @@ const options = {
           },
         },
         FieldsMissing: {
-          description: 'Required fields missing',
+          description: 'Required fields are missing',
           content: {
             'application/json': {
               schema: { '$ref': '#/components/schemas/Error' },
@@ -110,7 +110,7 @@ const options = {
           },
         },
         InvalidValue: {
-          description: 'Invalid value provided',
+          description: 'Invalid field value',
           content: {
             'application/json': {
               schema: { '$ref': '#/components/schemas/Error' }

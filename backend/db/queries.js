@@ -133,11 +133,27 @@ async function updateCurrentMonthMetrics(data, period, user_id) {
     return db.one(query, [...actualValuesToUpdate, start, end]);
     
   } catch (err) {
-    const error = `UPDATE INFO ERROR: ${err}`;
+    const error = `UPDATE LAST METRICS INFO ERROR: ${err}`;
     console.error(error);
     throw new Error(error);
   }
 
+}
+
+async function updateSelectedMetrics(updates, metrics_id, user_id) {
+  try {
+    const fields = Object.keys(updates);
+    const values = Object.values(updates);
+    const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+    const query = `UPDATE indications SET ${setClause} WHERE id = $${fields.length + 1} AND user_id = $${fields.length + 2} RETURNING *`;
+
+    // const db = require('../db/db')
+    return db.oneOrNone(query, [...values, metrics_id, user_id]);
+  } catch (err) {
+    const error = `UPDATE SELECTED METRICS ERROR: ${err}`;
+    console.error(error);
+    throw new Error(error);
+  }
 }
 
 
@@ -362,10 +378,9 @@ module.exports = {
   insertMetricsInfo,
   getPrevMonthInfo,
   updateCurrentMonthMetrics,
+  updateSelectedMetrics,
   getLastTaxes,
   getHistoricalDataFrom,
-  updateTaxClose,
-  createTax,
   deleteTaxBy,
   deleteIndicationBy,
   createApartmentDataTable,

@@ -11,7 +11,6 @@ const router = express.Router();
  *  get:
  *    tags: [Form, Indications]
  *    summary: Get last indications record
- *    security: []
  *    responses:
  *      200:
  *        description: Last indications data
@@ -52,8 +51,7 @@ router.get('/', async (req, res) => {
  * /form/submit:
  *  post:
  *    tags: [Form, Indications]
- *    summary: Create new inducation record
- *    security: []
+ *    summary: Create new indication record
  *    requestBody:
  *      required: true
  *      content:
