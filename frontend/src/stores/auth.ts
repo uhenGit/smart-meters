@@ -1,13 +1,13 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
-import api from "@/api/axios";
-import type { User } from "@/types";
+import api from "../api/axios";
+import type { User } from "../types";
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
 
   const isAuth = computed(() => user.value !== null);
-  const isAdmin = computed(() => user.value.role === 'admin');
+  const isAdmin = computed(() => user.value?.role === 'admin');
 
   const login = async (username: string, password: string) => {
     const { data } = await api.post('/auth/login', { username, password });

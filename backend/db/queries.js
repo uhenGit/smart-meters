@@ -182,7 +182,11 @@ async function getHistoricalDataFrom({ start, end }, user_id) {
 
   try {
     const query = `
-      SELECT * FROM indications
+      SELECT 
+        indications.*,
+        taxes.gas_tax, taxes.water_tax, taxes.dayelec_tax,
+        taxes.nightelec_tax, taxes.trash_fixed, taxes.water_delivery_fixed
+      FROM indications
       INNER JOIN taxes ON indications.tax_id = taxes.id
       WHERE indications.user_id = $1 AND created_at >= $2 AND created_at <= $3
     `;

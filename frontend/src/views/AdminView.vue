@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, shallowRef, reactive, computed, onMounted } from 'vue'
-import MainHeader from '@/components/MainHeader.vue'
-import api from '@/api/axios'
-import type { Tax, Indication } from '@/types'
+import MainHeader from '../components/MainHeader.vue'
+import api from '../api/axios'
+import type { Tax, Indication } from '../types'
 
 type Tab = 'taxes' | 'indications'
 const activeTab = shallowRef<Tab>('taxes')
@@ -123,7 +123,7 @@ const saveEdit = async (indicationId: string) => {
   try {
     const { data } = await api.patch(`/admin/indications/${indicationId}`, editBuffer)
 
-    const idx = indications.value.findIndex(({ id }) => id === indicationId)
+    const idx = indications.value.findIndex((r: Indication) => r.id === indicationId)
 
     if (idx !== -1) indications.value[idx] = data.data
 
@@ -137,10 +137,11 @@ const confirmDelete = async (id: string) => {
   indError.value = null
   try {
     await api.delete(`/admin/indications/${id}`)
-    indications.value = indications.value.filter(r => r.id !== id)
-    deleteTargetId.value = null
+    indications.value = indications.value.filter((r: Indication) => r.id !== id)
   } catch (err: any) {
     indError.value = err.response?.data?.error ?? 'Failed to delete record'
+  } finally {
+    deleteTargetId.value = null
   }
 }
 

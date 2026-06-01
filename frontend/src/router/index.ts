@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore } from '../stores/auth';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -7,31 +7,31 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('@/views/LoginView.vue'),
+      component: () => import('../views/LoginView.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/',
       name: 'form',
-      component: () => import('@/views/FormView.vue'),
+      component: () => import('../views/FormView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/history',
       name: 'history',
-      component: () => import('@/views/HistoryView.vue'),
+      component: () => import('../views/HistoryView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/statistics',
       name: 'statistics',
-      component: () => import('@/views/StatisticsView.vue'),
+      component: () => import('../views/StatisticsView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/admin',
       name: 'admin',
-      component: () => import('@/views/AdminView.vue'),
+      component: () => import('../views/AdminView.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {

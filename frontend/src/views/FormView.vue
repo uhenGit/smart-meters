@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, shallowRef, reactive, computed, onMounted } from 'vue'
 import type { ComputedRef } from 'vue'
-import MainHeader from '@/components/MainHeader.vue'
-import api from '@/api/axios'
-import type { Indication, FinanceResult } from '@/types'
+import MainHeader from '../components/MainHeader.vue'
+import api from '../api/axios'
+import type { Indication, FinanceResult } from '../types'
 
 type PrevData = Pick<Indication, 'gas' | 'water' | 'dayelec' | 'nightelec' | 'heat'>
 
 const prevData = ref<PrevData | null>(null)
-const financeResult = ref<FinanceResult | null>(null)
+const financeResult = shallowRef<FinanceResult | null>(null)
+const financialTotal = shallowRef<string | null>(null)
 const isLoading = shallowRef(true)
 const fetchError = shallowRef<string | null>(null)
 const isSubmitting = shallowRef(false)
@@ -87,7 +88,8 @@ const handleSubmit = async () => {
       heat: heatEnabled.value ? form.heat : 0,
     }
     const { data } = await api.post('/form/submit', payload)
-    financeResult.value = data.financeResult
+    financeResult.value = data.financeResult.sumDetails
+    financialTotal.value = data.financeResult.sum
     submitted.value = true
   } catch (err: any) {
     submitError.value = err.response?.data?.error ?? 'Submission failed'
@@ -100,9 +102,17 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/form')
     prevData.value    = data.prevDataToCompare
-    financeResult.value = data.financeResult
+    if (data.financeResult?.sumDetails) {
+      financeResult.value = data.financeResult.sumDetails
+      financialTotal.value = data.financeResult.sum
+    } else {
+      financeResult.value = data.financeResult
+    }
   } catch (err: any) {
-    fetchError.value = err.response?.data?.error ?? 'Failed to load data'
+    // In case the previous period data not found, display empty inputs
+    if (err.response.status !== 404) {
+      fetchError.value = err.response?.data?.error ?? 'Failed to load data'
+    }
   } finally {
     isLoading.value = false
   }
@@ -267,7 +277,7 @@ onMounted(async () => {
             <span v-if="heatEnabled">Heat</span><span v-if="heatEnabled">{{ financeResult.heat }}</span>
             <span>Trash (fixed)</span><span>{{ financeResult.trash_fixed }}</span>
             <span>Water delivery (fixed)</span><span>{{ financeResult.water_delivery_fixed }}</span>
-            <strong>Total</strong><strong>{{ financeResult.total }}</strong>
+            <strong>Total</strong><strong>{{ financialTotal }}</strong>
           </div>
         </div>
       </Transition>

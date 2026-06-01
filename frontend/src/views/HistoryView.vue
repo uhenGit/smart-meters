@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed } from 'vue'
-import MainHeader from '@/components/MainHeader.vue'
-import api from '@/api/axios'
-import type { Indication, Tax } from '@/types'
+import MainHeader from '../components/MainHeader.vue'
+import api from '../api/axios'
+import type { Indication, Tax } from '../types'
 
 type HistoryRecord = Indication & Pick<Tax,
   'gas_tax' | 'water_tax' | 'dayelec_tax' |

@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
     return res.status(404).json({ error: 'Previous month metrics not found' });
   }
 
-  const { gas, water, dayelec, nightelec, heat } = prevMonthData;
+  const { gas, water, dayelec, nightelec, heat } = currentMonthData ? currentMonthData : prevMonthData;
   const financeResult = calculateFinancialResult(currentMonthData, prevMonthData);
   const options = {
     data: currentMonthData,

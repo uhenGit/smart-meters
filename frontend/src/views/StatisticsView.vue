@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed } from 'vue'
-import MainHeader from '@/components/MainHeader.vue'
-import api from '@/api/axios'
-import type { StatisticsRecord, ComputedRow } from '@/types'
+import MainHeader from '../components/MainHeader.vue'
+import api from '../api/axios'
+import type { StatisticsRecord, ComputedRow } from '../types'
 
 const today = new Date().toLocaleDateString('en-CA')
 const firstOfYear = `${new Date().getFullYear()}-01-01`
@@ -42,7 +42,9 @@ const taxChanged = (a: StatisticsRecord, b: StatisticsRecord): boolean => {
 }
 
 // Build computed rows — first visible row is index 1 (index 0 is the prefetch anchor)
+// @ts-ignore
 const rows = computed<ComputedRow[]>(() => {
+  // @ts-ignore
   return rawRows.value.map((row: ComputedRow, idx: number) => {
     const prev = idx > 0 ? rawRows.value[idx - 1] : null
     const prevPrev = idx > 1 ? rawRows.value[idx - 2] : null
