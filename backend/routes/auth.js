@@ -239,4 +239,43 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/v1/auth/onboarding-status
+/**
+ * @openapi
+ * /auth/onboarding-status:
+ *  get:
+ *    tags: [Auth]
+ *    summary: Check if the user has at least one tax and indication record
+ *    responses:
+ *      200:
+ *        description: boolean - has tax and has indication
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                hasTaxes:
+ *                  type: boolean
+ *                hasIndications:
+ *                  type: boolean
+ *      401:
+ *        $ref: '#/components/responses/Unauthorized'
+ */
+router.get('/onboarding-status', authMiddleware, async (req, res) => {
+  try {
+
+    const [taxes, indications] = await Promise.all([
+      db.oneOrNone('SELECT id FROM taxes WHERE user_id = $1 LIMIT 1', [req.user.id]),
+      db.oneOrNone('SELECT id FROM indications WHERE user_id = $1 LIMIT 1', [req.user.id]),
+    ])
+
+    res.status(200).json({
+      hasTaxes: !!taxes,
+      hasIndications: !!indications,
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 module.exports = router;

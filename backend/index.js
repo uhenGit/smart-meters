@@ -14,7 +14,6 @@ const { authMiddleware } = require('./middleware/auth');
 const PORT = 3000;
 const app = express();
 
-// app.use(express.urlencoded({ extended: true }));
 app.use(cookiesParser());
 app.use(express.json());
 app.use(cors({

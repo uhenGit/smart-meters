@@ -421,7 +421,7 @@ onMounted(fetchCurrentTax)
     border-bottom: 2px solid #e5e7eb;
   }
 
-  &__section { }
+  // &__section { }
 
   &__filters {
     align-items: flex-end;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import HelpButton from './HelpButton.vue'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
@@ -57,8 +58,9 @@ const handleLogout = async () => {
         </li>
       </ul>
     </nav>
+    <help-button />
     <button
-      class="btn btn--outline"
+      class="logout"
       @click="handleLogout"
     >
       Logout
@@ -101,5 +103,13 @@ const handleLogout = async () => {
       border:1px solid var(--border);
     }
   }
+}
+
+.logout {
+  text-decoration: underline;
+  border: none;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
 }
 </style>
