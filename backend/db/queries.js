@@ -378,6 +378,28 @@ async function deleteIndicationBy(id) {
   return db.result(query, [id]);
 }
 
+async function createInactiveUser({ username, email, first_name, last_name, token }) {
+  return db.one(`
+      INSERT INTO users
+        (username, email, first_name, last_name, password, role, invite_token, is_active)
+      VALUES ($1, $2, $3, $4, '', 'user', $5, false)
+      RETURNING id, username, email, invite_token
+    `, [username, email, first_name, last_name, token])
+}
+
+async function getUsersList() {
+  return db.manyOrNone(`
+    SELECT id, username, email, first_name, last_name,
+            role, is_active, created_at
+    FROM users
+    ORDER BY created_at ASC
+  `)
+}
+
+async function deleteUser(id) {
+  return db.result('DELETE FROM users WHERE id = $1', [id])
+}
+
 module.exports = {
   insertMetricsInfo,
   getPrevMonthInfo,
@@ -391,4 +413,7 @@ module.exports = {
   createApartmentTaxesTable,
   getLastIndicationRecord,
   replaceTax,
+  createInactiveUser,
+  getUsersList,
+  deleteUser,
 };

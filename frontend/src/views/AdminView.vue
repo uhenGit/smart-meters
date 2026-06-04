@@ -2,9 +2,11 @@
 import { ref, shallowRef, reactive, computed, onMounted } from 'vue'
 import MainHeader from '../components/MainHeader.vue'
 import api from '../api/axios'
+import { useAuthStore } from '../stores/auth.ts'
 import type { Tax, Indication } from '../types'
 
-type Tab = 'taxes' | 'indications'
+type Tab = 'taxes' | 'indications' | 'users'
+const authStore = useAuthStore()
 const activeTab = shallowRef<Tab>('taxes')
 
 const currentTax = ref<Tax | null>(null)
@@ -12,6 +14,11 @@ const taxLoading = shallowRef(false)
 const taxError = shallowRef<string | null>(null)
 const taxSubmitting = shallowRef(false)
 const taxSuccess = shallowRef(false)
+const users = ref<any[]>([])
+const newUser = reactive({ username: '', email: '', first_name: '', last_name: '' })
+const inviteUrl = shallowRef<string | null>(null)
+const userCreating = shallowRef(false)
+const copied = shallowRef(false)
 
 const TAX_FIELDS = [
   { key: 'gas_tax', label: 'Gas' },
@@ -37,9 +44,56 @@ const isTaxFormValid = computed(() =>
   TAX_FIELDS.every(({ key }) => newTax[key] !== null && Number(newTax[key]) >= 0)
 )
 
+const fullInviteUrl = computed(() =>
+  inviteUrl.value ? `${window.location.origin}${inviteUrl.value}` : ''
+)
+
+const fetchUsers = async () => {
+  try {
+    const { data } = await api.get('/admin/users')
+    users.value = data.data ?? []
+  } catch (err: any) {
+    console.error(err)
+  }
+}
+
+const createUser = async () => {
+  userCreating.value = true
+  inviteUrl.value    = null
+
+  try {
+    const { data } = await api.post('/admin/users', newUser)
+    inviteUrl.value = data.inviteUrl
+    Object.assign(newUser, { username: '', email: '', first_name: '', last_name: '' })
+    await fetchUsers()
+  } catch (err: any) {
+    console.error(err.response?.data?.error)
+  } finally {
+    userCreating.value = false
+  }
+}
+
+const deleteUser = async (id: string) => {
+  try {
+    await api.delete(`/admin/users/${id}`)
+    users.value = users.value.filter(u => u.id !== id)
+  } catch (err: any) {
+    console.error(err)
+  }
+}
+
+const copyInvite = async () => {
+  if (!fullInviteUrl.value) return
+
+  await navigator.clipboard.writeText(fullInviteUrl.value)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
+}
+
 const fetchCurrentTax = async () => {
   taxLoading.value = true
   taxError.value = null
+
   try {
     const { data } = await api.get('/admin/taxes/current')
     currentTax.value = data.data
@@ -151,7 +205,11 @@ const formatDate = (dateStr: string): string => {
   })
 }
 
-onMounted(fetchCurrentTax)
+onMounted(() => {
+  // @todo use Promise.allSettled
+  fetchCurrentTax()
+  fetchUsers()
+})
 </script>
 
 <template>
@@ -174,9 +232,19 @@ onMounted(fetchCurrentTax)
       >
         Meter readings
       </button>
+      <button
+        class="tab-btn"
+        :class="{ 'tab-btn--active': activeTab === 'users' }"
+        @click="activeTab = 'users'"
+      >
+        Users
+      </button>
     </div>
 
-    <div v-if="activeTab === 'taxes'" class="admin-view__section">
+    <div
+      v-show="activeTab === 'taxes'"
+      class="admin-view__section"
+    >
       <div v-if="taxLoading" class="admin-view__state">Loading...</div>
       <div v-else-if="taxError" class="admin-view__state admin-view__state--error">{{ taxError }}</div>
 
@@ -225,7 +293,10 @@ onMounted(fetchCurrentTax)
       </template>
     </div>
 
-    <div v-else class="admin-view__section">
+    <div
+      v-show="activeTab === 'indications'"
+      class="admin-view__section"
+    >
 
       <div class="admin-view__filters flex">
         <label class="field col">
@@ -372,6 +443,89 @@ onMounted(fetchCurrentTax)
             </div>
           </div>
         </template>
+      </div>
+    </div>
+
+    <div
+      v-show="activeTab === 'users'"
+      class="admin-view__section"
+    >
+      <div class="user-form">
+        <h3>Create new user</h3>
+        <div class="flex" style="gap: 1rem; flex-wrap: wrap;">
+          <div class="flex col field">
+            <label>Username</label>
+            <input v-model="newUser.username" type="text" placeholder="john_doe" />
+          </div>
+          <div class="flex col field">
+            <label>Email</label>
+            <input v-model="newUser.email" type="email" placeholder="john@example.com" />
+          </div>
+          <div class="flex col field">
+            <label>First name</label>
+            <input v-model="newUser.first_name" type="text" />
+          </div>
+          <div class="flex col field">
+            <label>Last name</label>
+            <input v-model="newUser.last_name" type="text" />
+          </div>
+        </div>
+
+        <div class="flex" style="justify-content: flex-end; margin-top: 1rem;">
+          <button
+            class="btn btn--xs btn--primary"
+            :disabled="!newUser.username || !newUser.email || userCreating"
+            @click="createUser"
+          >
+            {{ userCreating ? 'Creating...' : 'Create & get invite link' }}
+          </button>
+        </div>
+
+        <!-- Invite URL display -->
+        <div v-if="inviteUrl" class="invite-box">
+          <p>Share this link with the user:</p>
+          <div class="invite-box__url flex">
+            <code>{{ fullInviteUrl }}</code>
+            <button class="btn btn--xs btn--outline" @click="copyInvite">
+              {{ copied ? 'Copied!' : 'Copy' }}
+            </button>
+          </div>
+          <p class="invite-box__note">This link is single-use and expires once the account is activated.</p>
+        </div>
+      </div>
+
+      <!-- Users list -->
+      <div v-if="users.length > 0" class="users-table" style="margin-top: 2rem;">
+        <div class="users-table__row users-table__row--header">
+          <div class="users-table__cell">Username</div>
+          <div class="users-table__cell">Email</div>
+          <div class="users-table__cell">Role</div>
+          <div class="users-table__cell">Status</div>
+          <div class="users-table__cell">Actions</div>
+        </div>
+        <div
+          v-for="user in users"
+          :key="user.id"
+          class="users-table__row"
+        >
+          <div class="users-table__cell">{{ user.username }}</div>
+          <div class="users-table__cell">{{ user.email }}</div>
+          <div class="users-table__cell">{{ user.role }}</div>
+          <div class="users-table__cell">
+            <span :class="user.is_active ? 'status--active' : 'status--pending'">
+              {{ user.is_active ? 'Active' : 'Pending' }}
+            </span>
+          </div>
+          <div class="users-table__cell">
+            <button
+              class="btn btn--xs btn--danger"
+              :disabled="user.id === authStore.user?.id"
+              @click="deleteUser(user.id)"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -571,6 +725,45 @@ onMounted(fetchCurrentTax)
   }
 
   &__input { @extend %table-input; }
+}
+
+.invite-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+
+  p { margin: 0 0 0.5rem; }
+
+  &__url {
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+
+    code {
+      font-size: 0.8125rem;
+      word-break: break-all;
+      flex: 1;
+    }
+  }
+
+  &__note { color: var(--text); margin-top: 0.5rem !important; }
+}
+
+.status {
+  &--active  { color: var(--green-5); font-weight: 600; }
+  &--pending { color: var(--warning); font-weight: 600; }
+}
+
+.users-table {
+  &__row {
+    @extend %table-row;
+    grid-template-columns: 1fr 2fr 1fr 1fr 6rem;
+    &--header { font-weight: 600; background: #f9fafb; }
+  }
+  &__cell { @extend %table-cell; }
 }
 
 // Modal

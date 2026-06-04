@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { questionList } = require('../boot.js');
 
 const calculateFinancialResult = function (cV, pV) {
@@ -101,10 +102,19 @@ const isValidDate = function(value) {
     return !isNaN(date.getTime())
 }
 
+/**
+ * Generates a cryptographically secure random token
+ * @returns {string} - hex string, 32 bytes = 64 chars
+ */
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex')
+}
+
 module.exports = {
   calculateFinancialResult,
   parseInputs,
   getDateRangeFrom,
   handleHistoricalList,
   isValidDate,
+  generateToken,
 };

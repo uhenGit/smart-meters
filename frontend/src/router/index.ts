@@ -35,6 +35,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/RegisterView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },

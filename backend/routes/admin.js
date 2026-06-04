@@ -8,8 +8,11 @@ const {
   updateSelectedMetrics,
   deleteIndicationBy,
   replaceTax,
+  createInactiveUser,
+  getUsersList,
+  deleteUser
 } = require('../db/queries')
-const { isValidDate } = require('../handlers/index')
+const { isValidDate, generateToken } = require('../handlers/index')
 
 router.use(authMiddleware, adminOnly)
 
@@ -293,6 +296,111 @@ router.delete('/indications/:id', async (req, res) => {
     if (result.rowCount === 0) return res.status(404).json({ error: 'Record not found' })
 
     res.status(200).json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/v1/admin/users
+/**
+ * @openapi
+ * /admin/users:
+ *   get:
+ *     tags: [Admin, Users]
+ *     summary: Get all users
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get('/users', async (req, res) => {
+  try {
+    const users = await getUsersList()
+
+    res.json({ data: users, error: null })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/v1/admin/users
+/**
+ * @openapi
+ * /admin/users:
+ *   post:
+ *     tags: [Admin, Users]
+ *     summary: Create a new inactive user and generate an invite token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [username, email]
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: john_doe
+ *               email:
+ *                 type: string
+ *                 example: john@example.com
+ *               first_name:
+ *                 type: string
+ *               last_name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created, invite token returned
+ *       409:
+ *         $ref: '#/components/responses/FieldAlreadyTaken'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       400:
+ *         $ref: '#/components/responses/FieldsMissing'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.post('/users', async (req, res) => {
+  const { username, email, first_name = '', last_name = '' } = req.body
+
+  if (!username || !email) {
+    return res.status(400).json({ error: 'username and email are required' })
+  }
+
+  const token = generateToken()
+
+  try {
+    const user = await createInactiveUser({ username, email, first_name, last_name, token })
+
+    res.status(201).json({
+      data: user,
+      inviteUrl: `/register?token=${token}`,
+      error: null,
+    })
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Username or email already taken' })
+    }
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/v1/admin/users/:id
+router.delete('/users/:id', async (req, res) => {
+  const { id } = req.params
+
+  if (id === req.user.id) {
+    return res.status(400).json({ error: 'Cannot delete your own account' })
+  }
+
+  try {
+    const result = await deleteUser(id)
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'User not found' })
+    res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

@@ -278,4 +278,65 @@ router.get('/onboarding-status', authMiddleware, async (req, res) => {
   }
 })
 
+// GET /api/v1/auth/invite?token=...
+// Validates the token and returns the username to prefill the form
+router.get('/invite', async (req, res) => {
+  const { token } = req.query
+
+  if (!token) return res.status(400).json({ error: 'Token is required' })
+
+  try {
+    const user = await db.oneOrNone(`
+      SELECT id, username, email, first_name, last_name
+      FROM users
+      WHERE invite_token = $1 AND is_active = false
+    `, [token])    
+
+    if (!user) {
+      return res.status(404).json({ error: 'Invalid or already used token' })
+    }
+
+    res.status(200).json({ data: user })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/v1/auth/register
+router.post('/register', async (req, res) => {
+  const { token, password } = req.body
+
+  if (!token || !password) {
+    return res.status(400).json({ error: 'Token and password are required' })
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' })
+  }
+
+  try {
+    const user = await db.oneOrNone(`
+      SELECT id FROM users
+      WHERE invite_token = $1 AND is_active = false
+    `, [token])
+
+    if (!user) {
+      return res.status(404).json({ error: 'Invalid or already used token' })
+    }
+
+    const hash = await bcrypt.hash(password, 12)
+
+    const registered = await db.one(`
+      UPDATE users
+      SET password = $1, invite_token = NULL, is_active = true
+      WHERE id = $2
+      RETURNING id, username, email, first_name, last_name, role
+    `, [hash, user.id])
+
+    res.status(201).json({ data: registered })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 module.exports = router;
