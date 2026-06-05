@@ -33,7 +33,8 @@ exports.up = (pgm) => {
       notNull: true,
       default: pgm.func('CURRENT_DATE'),
     },
-  })
+  },
+  { ifNotExists: true })
 }
 
 exports.down = (pgm) => {

@@ -74,6 +74,8 @@ const createUser = async () => {
 }
 
 const deleteUser = async (id: string) => {
+  if (id === authStore.user?.id) return
+
   try {
     await api.delete(`/admin/users/${id}`)
     users.value = users.value.filter(u => u.id !== id)
@@ -450,28 +452,42 @@ onMounted(() => {
       v-show="activeTab === 'users'"
       class="admin-view__section"
     >
-      <div class="user-form">
+      <div class="flex col user-form">
         <h3>Create new user</h3>
-        <div class="flex" style="gap: 1rem; flex-wrap: wrap;">
+        <div class="flex field-wrap">
           <div class="flex col field">
             <label>Username</label>
-            <input v-model="newUser.username" type="text" placeholder="john_doe" />
+            <input
+              v-model="newUser.username"
+              type="text"
+              placeholder="john_doe"
+            />
           </div>
           <div class="flex col field">
             <label>Email</label>
-            <input v-model="newUser.email" type="email" placeholder="john@example.com" />
+            <input
+              v-model="newUser.email"
+              type="email"
+              placeholder="john@example.com"
+            />
           </div>
           <div class="flex col field">
             <label>First name</label>
-            <input v-model="newUser.first_name" type="text" />
+            <input
+              v-model="newUser.first_name"
+              type="text"
+            />
           </div>
           <div class="flex col field">
             <label>Last name</label>
-            <input v-model="newUser.last_name" type="text" />
+            <input
+              v-model="newUser.last_name"
+              type="text"
+            />
           </div>
         </div>
 
-        <div class="flex" style="justify-content: flex-end; margin-top: 1rem;">
+        <div class="flex action-create">
           <button
             class="btn btn--xs btn--primary"
             :disabled="!newUser.username || !newUser.email || userCreating"
@@ -495,20 +511,23 @@ onMounted(() => {
       </div>
 
       <!-- Users list -->
-      <div v-if="users.length > 0" class="users-table" style="margin-top: 2rem;">
+      <div
+        v-if="users.length > 0"
+        class="users-table"
+      >
         <div class="users-table__row users-table__row--header">
-          <div class="users-table__cell">Username</div>
+          <div class="users-table__cell start">Username</div>
           <div class="users-table__cell">Email</div>
           <div class="users-table__cell">Role</div>
           <div class="users-table__cell">Status</div>
-          <div class="users-table__cell">Actions</div>
+          <div class="users-table__cell end">Actions</div>
         </div>
         <div
           v-for="user in users"
           :key="user.id"
           class="users-table__row"
         >
-          <div class="users-table__cell">{{ user.username }}</div>
+          <div class="users-table__cell start">{{ user.username }}</div>
           <div class="users-table__cell">{{ user.email }}</div>
           <div class="users-table__cell">{{ user.role }}</div>
           <div class="users-table__cell">
@@ -516,7 +535,7 @@ onMounted(() => {
               {{ user.is_active ? 'Active' : 'Pending' }}
             </span>
           </div>
-          <div class="users-table__cell">
+          <div class="users-table__cell end">
             <button
               class="btn btn--xs btn--danger"
               :disabled="user.id === authStore.user?.id"
@@ -575,7 +594,27 @@ onMounted(() => {
     border-bottom: 2px solid #e5e7eb;
   }
 
-  // &__section { }
+  &__section {
+    .user-form {
+      gap: 1rem;
+    }
+
+    .field-wrap {
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      gap: .75rem;
+
+      input {
+        padding: .375rem;
+        border-radius: .25rem;
+        outline: none;
+        border: none;
+      }
+    }
+  }
 
   &__filters {
     align-items: flex-end;
@@ -614,6 +653,11 @@ onMounted(() => {
   }
 
   &__success { color: #16a34a; font-size: 0.875rem; }
+}
+
+.action-create {
+  justify-content: flex-end;
+  margin-top: 1rem;
 }
 
 .tab-btn {
@@ -758,6 +802,8 @@ onMounted(() => {
 }
 
 .users-table {
+  margin-top: 2rem;
+
   &__row {
     @extend %table-row;
     grid-template-columns: 1fr 2fr 1fr 1fr 6rem;

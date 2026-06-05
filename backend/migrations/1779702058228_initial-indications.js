@@ -31,13 +31,15 @@ exports.up = (pgm) => {
       references: '"taxes"',
       onDelete: 'SET NULL',
     },
-  })
+  },
+  { ifNotExists: true }
+)
 
   // Unique constraint: one record per user per month
-  pgm.createIndex('indications', ['user_id', 'created_at'], { unique: true })
+  pgm.createIndex('indications', ['user_id', 'created_at'], { unique: true, ifNotExists: true })
 
   // Index for date range queries used in history and statistics routes
-  pgm.createIndex('indications', ['user_id', 'created_at'])
+  pgm.createIndex('indications', ['user_id', 'created_at'], { ifNotExists: true })
 }
 
 exports.down = (pgm) => {

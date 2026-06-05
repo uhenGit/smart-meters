@@ -26,10 +26,12 @@ exports.up = (pgm) => {
       references: '"users"',
       onDelete: 'SET NULL',
     },
-  })
+  },
+  { ifNotExists: true }
+)
 
   // Index for the "current tax" query pattern: WHERE start_date = end_date
-  pgm.createIndex('taxes', ['start_date', 'end_date'])
+  pgm.createIndex('taxes', ['start_date', 'end_date'], { ifNotExists: true })
 }
 
 exports.down = (pgm) => {
