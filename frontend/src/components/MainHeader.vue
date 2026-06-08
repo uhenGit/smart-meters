@@ -56,6 +56,15 @@ const handleLogout = async () => {
             Statistics
           </router-link>
         </li>
+        <li>
+          <router-link
+            to="/settings"
+            class="header__nav-item"
+            :class="{ 'header__nav-item--active': isActive('settings') }"
+          >
+            Settings
+          </router-link>
+        </li>
       </ul>
     </nav>
     <help-button />

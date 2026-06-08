@@ -339,4 +339,79 @@ router.post('/register', async (req, res) => {
   }
 })
 
+// PATCH /api/v1/auth/password
+/**
+ * @openapi
+ * /auth/password:
+ *   patch:
+ *     tags: [Auth]
+ *     summary: Change current user password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         $ref: '#/components/responses/InvalidValue'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch('/password', authMiddleware, async (req, res) => {
+  const { currentPassword, newPassword } = req.body
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Both current and new password are required' })
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters' })
+  }
+
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ error: 'New password must differ from the current one' })
+  }
+
+  try {
+    const user = await db.oneOrNone(
+      'SELECT id, password FROM users WHERE id = $1',
+      [req.user.id]
+    )
+
+    if (!user) return res.status(404).json({ error: 'User not found' })
+
+    const match = await bcrypt.compare(currentPassword, user.password)
+
+    if (!match) {
+      return res.status(400).json({ error: 'Current password is incorrect' })
+    }
+
+    const hash = await bcrypt.hash(newPassword, 12)
+
+    await db.none(
+      'UPDATE users SET password = $1 WHERE id = $2',
+      [hash, req.user.id]
+    )
+
+    res.clearCookie('accessToken')
+    res.status(200).json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 module.exports = router;
